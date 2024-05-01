@@ -1,0 +1,8 @@
+#file types
+.DS_Store
+.Rproj.user
+.Rproj.user/
+.Rhistory
+
+#specific files
+temp/

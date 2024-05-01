@@ -1,0 +1,20 @@
+name,value
+SEQN,Respondent sequence number
+SDDSRVYR,Data Release Number
+RIDSTATR,Interview/Examination Status
+RIDEXMON,Six month time period
+RIAGENDR,Gender
+RIDAGEYR,Age at Screening Adjudicated - Recode
+RIDAGEMN,Age in Months - Recode
+RIDAGEEX,Exam Age in Months - Recode
+RIDRETH1,Race/Ethnicity - Recode
+DMQMILIT,Veteran/Military Status
+DMDCITZN,Citizenship Status
+DMDEDUC3,Education Level - Children/Youth 6-19
+DMDEDUC2,Education Level - Adults 20+
+DMDHHSIZ,""
+INDHHINC,Annual Household Income
+INDFMINC,Annual Family Income
+INDFMPIR,Family PIR
+RIDEXPRG,Pregnancy Status at Exam - Recode
+DMQMILIZ,Served active duty in US Armed Forces
