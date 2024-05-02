@@ -14,6 +14,16 @@ source("../cleaning_packages.R")
 #import
 codebook <- import("nhanes_lab_codebook.csv")
 
+#=====Define function for unit conversions=====================================
+
+convert_units <- function(df, var_name_old, var_name_new, input_unit, output_unit) {
+  require(units)
+  df[[var_name_new]] <- set_units(df[[var_name_old]], input_unit, mode = "standard") |> 
+    set_units(output_unit, mode = "standard")
+  return(df)
+}
+
+
 #=====Standard biochemistry profile============================================
 
 # 1999="LAB18",
@@ -42,7 +52,7 @@ names_sbp <- c("LAB18",
 years_sbp <- seq(1999, 2017, 2)
 
 #SBP data
-df_sbp <- process_data(names_sbp, years_sbp)
+df_sbp <- pull_nhanes(names_sbp, years_sbp)
 
 #=====C-reactive protein=======================================================
 
@@ -79,7 +89,7 @@ years_crp <- c(1999,
 
 
 #CRP data
-df_crp <- process_data(names_crp, years_crp)
+df_crp <- pull_nhanes(names_crp, years_crp)
 
 
 #restrict to CRP only (convert CRP to hsCRP?)
@@ -130,10 +140,12 @@ years_insul <- c(1999,
                  2015,
                  2017)
 
-df_insul <- process_data(names_insul, years_insul)
+df_insul <- pull_nhanes(names_insul, years_insul)
 
 
 #=====Testosterone=============================================================
+
+#ANALYTICAL ADJUSTMENT NEEDED. SEE: https://wwwn.cdc.gov/Nchs/Nhanes/2013-2014/TST_H.htm
 
 # 1999="SSCHL_A",
 # 2001="SSCHL_B",
@@ -159,8 +171,16 @@ years_testo <- c(1999,
                  2015)
 
 # testo data
-df_testo <- process_data(names_testo, years_testo)
+df_testo <- pull_nhanes(names_testo, years_testo)
 
+# ridge_years(id="SEQN", year="year", df=df_testo)
+
+df_testo_recodes <- convert_units(df_testo, "SSTESTO", "SSTESTO_ngdL", "ng/mL", "ng/dL")
+df_testo_recodes$LBXTST <- set_units(df_testo_recodes$LBXTST, "ng/dL") 
+
+df_testo_recodes <- df_testo_recodes |> 
+  mutate(testo_tot = ifelse(!is.na(SSTESTO_ngdL), SSTESTO_ngdL, LBXTST))
+ridge_years(id="SEQN", year="year", df=df_testo_recodes |> select(SEQN, year, testo_tot))
 
 #=====Apolipoprotein B=========================================================
 
@@ -182,7 +202,7 @@ names_apob <- c("TRIGLY_D",
 years_apob <- seq(2005, 2015, 2)
 
 #apob data
-df_apob <- process_data(names_apob, years_apob)
+df_apob <- pull_nhanes(names_apob, years_apob)
 
 #=====Cholesterol - HDL========================================================
 
@@ -212,7 +232,7 @@ names_hdl <- c("Lab13",
 years_hdl <- seq(1999, 2017, 2)
 
 #hdl data
-df_hdl <- process_data(names_hdl, years_hdl)
+df_hdl <- pull_nhanes(names_hdl, years_hdl)
 
 #=====Complete blood count ====================================================
 
@@ -242,7 +262,7 @@ names_cbc <- c("LAB25",
 years_cbc <- seq(1999, 2017, 2)
 
 #hdl data
-df_cbc <- process_data(names_cbc, years_cbc)
+df_cbc <- pull_nhanes(names_cbc, years_cbc)
 
 #=====Glycohemoglobin (HbA1c)==================================================
 
@@ -272,7 +292,7 @@ names_ghb <- c("LAB10",
 years_ghb <- seq(1999, 2017, 2)
 
 #hdl data
-df_ghb <- process_data(names_ghb, years_ghb)
+df_ghb <- pull_nhanes(names_ghb, years_ghb)
 
 
 
@@ -280,7 +300,7 @@ df_ghb <- process_data(names_ghb, years_ghb)
 
 #write update message
 message="
-Data matching TAMU vars is pulled. Need to make year to year adjustments before use.
+Made function for unit conversion. Started work on testosterone.
 "
 
 #update log

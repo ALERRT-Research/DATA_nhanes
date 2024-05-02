@@ -2,6 +2,13 @@
 Peter T. Tanklsey
 
 Message:
+Made function for unit conversion. Started work on testosterone.
+
+
+05-02-2024
+Peter T. Tanklsey
+
+Message:
 Data matching TAMU vars is pulled. Need to make year to year adjustments before
 use.
 

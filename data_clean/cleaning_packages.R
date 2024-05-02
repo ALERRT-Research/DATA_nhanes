@@ -7,7 +7,8 @@ p_load(rio,
        janitor,
        nhanesA,
        rvest,
-       sjlabelled)
+       sjlabelled,
+       units)
 
 
 #=====define function to pull/process data=====================================
