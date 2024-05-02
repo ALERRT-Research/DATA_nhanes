@@ -1,0 +1,15 @@
+05-02-2024
+Peter T. Tanklsey
+
+Message:
+Data matching TAMU vars is pulled. Need to make year to year adjustments before
+use.
+
+
+05-02-2024
+Peter T. Tanklsey
+
+Message:
+Initialized log
+
+

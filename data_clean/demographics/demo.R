@@ -5,67 +5,15 @@ source("../cleaning_packages.R")
 # Waves start with no suffix [A] and continue starting with [B,C, ...N] )
 
 #Get waves (1999-2017)
-waves <- c("DEMO", paste0("DEMO_", LETTERS[2:10])#, "P_DEMO"
-)
+waves <- c("DEMO", paste0("DEMO_", LETTERS[2:10]))
 
-#get each wave of demographic data through 2017 (J) (data collection starts on the odd year)
-demo <- map(waves, ~{
-  nhanes(.x, includelabels = TRUE)
-})
+years <- seq(1999, 2017, by=2)
 
-#fix column types
-demo_recodes <- lapply(demo, function(df) {
-  mutate(df, across(matches(c("^DMD.*SIZ$", "^DMDHHSZ.*$")),  ~as.character(.)))
-}
-) 
+demo_raw <- pull_nhanes(dataframes = waves, years=years, mismatch_regex = "DMD.*SIZ$|DMDHHSZ.*")
 
 #bind all waves
-demo_all <- bind_rows(demo_recodes) |> 
-  select(SEQN,
-         SDDSRVYR,
-         RIDSTATR,
-         RIDEXMON,
-         RIAGENDR,
-         RIDAGEYR,
-         RIDAGEMN,
-         RIDAGEEX,
-         RIDRETH1,
-         DMQMILIT,
-         DMQMILIZ,
-         DMDCITZN,
-         DMDEDUC3,
-         DMDEDUC2,
-         DMDHHSIZ,
-         INDHHINC,
-         INDFMINC,
-         INDFMPIR,
-         RIDEXPRG)
-
-
-#save vector of names
-demo_names <- c(names(demo_all))
-
-#define function to get labels
-get_labs <- function(df) {
-  enframe(get_label(df))
-}
-
-#extract labels (remove weight variables FOR NOW)
-demo_labs <- map(demo_recodes, get_labs) |>
-  bind_rows() |>
-  distinct(name, .keep_all=TRUE) |> #removed 368 rows (68%), 174 rows remaining
-  filter(name %in% demo_names)
-
-#export labels as codebook
-export(demo_labs, "demo_codebook.csv")
-
-#get labs
-labs <- demo_labs$value
-
-#add labels to dataframe
-demo_labelled <- demo_all |>
-  set_label(label = labs) |> 
-  rename("SEQN"          = SEQN,
+demo_recodes <- demo_raw |> 
+  select("SEQN"          = SEQN,
          "data_release"  = SDDSRVYR,
          "int_exm_stat"  = RIDSTATR,
          "period_6mo"    = RIDEXMON,
@@ -160,22 +108,37 @@ demo_labelled <- demo_all |>
                               "6",
                               "7 or more people in the Household")) |> 
   mutate(across(c(hh_income, fam_income), ~case_when((. %in% c("Over $20,000","Under $20,000","Refused","Don't know")) ~ NA, #dropped bad categories
-                               TRUE ~ .))) |> 
+                                                     TRUE ~ .))) |> 
   mutate(preg_stat = case_when((preg_stat == "Yes, positive lab pregnancy test or self-reported pregnant at exam") ~ "yes",
                                (preg_stat %in% c("SP not pregnant at exam", "The participant was not pregnant at exam")) ~ "no",
-                                (preg_stat %in% c("Cannot ascertain if SP is pregnant at exam", "Cannot ascertain if the participant is pregnant at exam")) ~ "cannot determine",
+                               (preg_stat %in% c("Cannot ascertain if SP is pregnant at exam", "Cannot ascertain if the participant is pregnant at exam")) ~ "cannot determine",
                                TRUE ~ NA_character_),
          preg_stat = fct_infreq(preg_stat))
 
+# #export labels as codebook
+# export(demo_labs, "demo_codebook.csv")
+
 #check number of adults
-demo_labelled |> 
+demo_recodes |> 
   count(adults = age_screen_yr>=18)
 # adults     n
 # FALSE 42112
 #  TRUE 59204
 
 #export data
-export(demo_labelled, "demo_99to17.rds")
+export(demo_recodes, "demo_99to17.rds")
 
 
+
+#=====update log file==========================================================
+
+#write update message
+message="
+Updated script to include common functions.
+"
+
+#update log
+update_log(file="log_demographics.txt",
+           author="Peter T. Tanksley",
+           message = message)
 

@@ -1,0 +1,14 @@
+05-02-2024
+Peter T. Tanksley
+
+Message:
+Updated script to include common functions.
+
+
+05-02-2024
+Peter T. Tanksley
+
+Message:
+Initialized log
+
+

@@ -14,48 +14,6 @@ source("../cleaning_packages.R")
 #import
 codebook <- import("nhanes_lab_codebook.csv")
 
-#=====define function to pull/process data=====================================
-
-process_data <- function(dataframes, years) {
-  # Retrieve data
-  data_list <- map2(dataframes, years, ~{
-    nhanes(.x, includelabels = TRUE) |>
-      mutate(year = .y)
-  })
-  
-  # Bind dataframes
-  data_combined <- bind_rows(data_list)
-  
-  # Define function to get labels
-  get_labs <- function(df) {
-    enframe(get_label(df))
-  }
-  
-  # Extract labels (remove weight variables FOR NOW)
-  labs_list <- map(data_list, get_labs) %>%
-    bind_rows() %>%
-    distinct(name, .keep_all=TRUE) 
-  
-  # Add labels to dataframe
-  data_labelled <- data_combined |>
-    set_label(label = labs_list$value) |> 
-    select(SEQN, year, everything())
-  
-  return(data_labelled)
-}
-
-#check for outliers - Density by year
-ridge_years <- function(id=id, year=year, df=df) {
-  df |> 
-    select(id, year, where(is.numeric)) |> 
-    pivot_longer(-c(id, year),
-                 names_to="vars",
-                 values_to="vals") |>
-    ggplot(aes(x=vals, y=as.factor(year))) + 
-    geom_density_ridges() +
-    facet_wrap(~vars, scales = "free_x") #year-to-year looks good
-}
-
 #=====Standard biochemistry profile============================================
 
 # 1999="LAB18",
@@ -315,3 +273,17 @@ years_ghb <- seq(1999, 2017, 2)
 
 #hdl data
 df_ghb <- process_data(names_ghb, years_ghb)
+
+
+
+#=====update log file==========================================================
+
+#write update message
+message="
+Data matching TAMU vars is pulled. Need to make year to year adjustments before use.
+"
+
+#update log
+update_log(file="log_laboratory.txt",
+           author="Peter T. Tanklsey",
+           message = message)
