@@ -45,7 +45,7 @@ pull_nhanes <- function(dataframes, years, mismatch_regex = NULL) {
   return(data_labelled)
 }
 
-#=====define function to check for outliers
+#=====define function to initialize/update logs
 
 #function for creating/updating a log file for each directory ()
 update_log <- function(file, author, message) {
@@ -115,7 +115,7 @@ barplot_years <- function(id=id, year=year, df=df) {
 
 
 
-#Exit message
+#=====Exit message=============================================================
 cat("Make sure to update the log file using {update_log()} after you're done! \n \n")
 cat('EXAMPLE:
 
