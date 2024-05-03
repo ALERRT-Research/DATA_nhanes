@@ -16,10 +16,16 @@ codebook <- import("nhanes_lab_codebook.csv")
 
 #=====Define function for unit conversions=====================================
 
-convert_units <- function(df, var_name_old, var_name_new, input_unit, output_unit) {
+convert_units <- function(df, var_name_old, var_name_new, input_unit, output_unit, drop_after = FALSE) {
   require(units)
-  df[[var_name_new]] <- set_units(df[[var_name_old]], input_unit, mode = "standard") |> 
+  converted <- set_units(df[[var_name_old]], input_unit, mode = "standard") |> 
     set_units(output_unit, mode = "standard")
+  
+  if (drop_after) {
+    converted <- drop_units(converted)
+  }
+  
+  df[[var_name_new]] <- converted
   return(df)
 }
 
@@ -175,8 +181,7 @@ df_testo <- pull_nhanes(names_testo, years_testo)
 
 # ridge_years(id="SEQN", year="year", df=df_testo)
 
-df_testo_recodes <- convert_units(df_testo, "SSTESTO", "SSTESTO_ngdL", "ng/mL", "ng/dL")
-df_testo_recodes$LBXTST <- set_units(df_testo_recodes$LBXTST, "ng/dL") 
+df_testo_recodes <- convert_units(df_testo, "SSTESTO", "SSTESTO_ngdL", "ng/mL", "ng/dL", drop_after = TRUE)
 
 df_testo_recodes <- df_testo_recodes |> 
   mutate(testo_tot = ifelse(!is.na(SSTESTO_ngdL), SSTESTO_ngdL, LBXTST))
@@ -300,7 +305,7 @@ df_ghb <- pull_nhanes(names_ghb, years_ghb)
 
 #write update message
 message="
-Made function for unit conversion. Started work on testosterone.
+Updated unit conversion function to drop units execution.
 "
 
 #update log
