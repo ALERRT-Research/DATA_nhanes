@@ -62,6 +62,8 @@ df_sbp <- pull_nhanes(names_sbp, years_sbp)
 
 #=====C-reactive protein=======================================================
 
+#ANALYTICAL NOTE: contains normal and high-sensitivity CRP (to be combined)
+
 # 1999="LAB11",
 # 2001="L11_B",
 # 2003="L11_C",
@@ -149,9 +151,9 @@ years_insul <- c(1999,
 df_insul <- pull_nhanes(names_insul, years_insul)
 
 
-#=====Testosterone=============================================================
+#=====Testosterone=(READY)=====================================================
 
-#ANALYTICAL ADJUSTMENT NEEDED. SEE: https://wwwn.cdc.gov/Nchs/Nhanes/2013-2014/TST_H.htm
+#ANALYTICAL NOTE. SEE: https://wwwn.cdc.gov/Nchs/Nhanes/2013-2014/TST_H.htm
 
 # 1999="SSCHL_A",
 # 2001="SSCHL_B",
@@ -179,13 +181,31 @@ years_testo <- c(1999,
 # testo data
 df_testo <- pull_nhanes(names_testo, years_testo)
 
-# ridge_years(id="SEQN", year="year", df=df_testo)
-
+#convert early testo from ng/mL to ng/dL
 df_testo_recodes <- convert_units(df_testo, "SSTESTO", "SSTESTO_ngdL", "ng/mL", "ng/dL", drop_after = TRUE)
 
-df_testo_recodes <- df_testo_recodes |> 
-  mutate(testo_tot = ifelse(!is.na(SSTESTO_ngdL), SSTESTO_ngdL, LBXTST))
-ridge_years(id="SEQN", year="year", df=df_testo_recodes |> select(SEQN, year, testo_tot))
+#combine and apply deming regression equation to pre-2013 data
+df_testo_adj <- df_testo_recodes |> 
+  mutate(testo_tot_unadj = ifelse(!is.na(SSTESTO_ngdL), SSTESTO_ngdL, LBXTST)) |> 
+  mutate(testo_tot = case_when((year %in% c(1999, 2001, 2003, 2011)) ~ 1.021*testo_tot_unadj-0.178,
+                                   TRUE ~ testo_tot_unadj)) |> 
+  select(SEQN, year, testo_tot)
+
+#check distributions (2011 and later waves have a distinct peak at low levels)
+#check for subgroups (females, minors, etc)
+ridge_years(id="SEQN", year="year", df=df_testo_adj)
+
+# #pull in demo data (dropping females and minors normalized the distributions)
+# demo_male_18 <- import("../demographics/demo_99to17.rds") |> 
+#   filter(gender=="Male" & age_screen_yr >=18) |>
+#   pull(SEQN)
+# 
+# #check distributions looking only at adult males (looks good)
+# ridge_years(id="SEQN", year="year", df=df_testo_adj |>
+#               select(SEQN, year, testo_tot) |> 
+#               filter(SEQN %in% demo_male_18))
+
+
 
 #=====Apolipoprotein B=========================================================
 
@@ -305,7 +325,8 @@ df_ghb <- pull_nhanes(names_ghb, years_ghb)
 
 #write update message
 message="
-Updated unit conversion function to drop units execution.
+Prepared testosterone data including unit conversion and deming regression
+adjustment. 
 "
 
 #update log
