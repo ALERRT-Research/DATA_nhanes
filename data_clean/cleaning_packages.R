@@ -5,6 +5,7 @@ p_load(rio,
        ###
        ggridges,
        janitor,
+       naniar,
        nhanesA,
        rvest,
        sjlabelled,
@@ -112,8 +113,6 @@ barplot_years <- function(id=id, year=year, df=df) {
     geom_bar() +
     facet_wrap(year~vars, scales = "free_x") #year-to-year looks good
 }
-
-
 
 
 #=====Exit message=============================================================

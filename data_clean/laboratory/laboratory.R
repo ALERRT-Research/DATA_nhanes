@@ -32,6 +32,8 @@ convert_units <- function(df, var_name_old, var_name_new, input_unit, output_uni
 
 #=====Standard biochemistry profile============================================
 
+#Analytic note: adjustments needed, see: https://wwwn.cdc.gov/Nchs/Nhanes/2017-2018/BIOPRO_J.htm
+
 # 1999="LAB18",
 # 2001="LAB40_B",
 # 2003="LAB40_C",
@@ -60,7 +62,26 @@ years_sbp <- seq(1999, 2017, 2)
 #SBP data
 df_sbp <- pull_nhanes(names_sbp, years_sbp)
 
-#=====C-reactive protein=======================================================
+#contents: cholesterol total, triglyceride, glucose, blood urea nitrogen, creatinine, sodium
+
+lab_names <- enframe(get_label(df_sbp))
+
+ridge_years("SEQN", "year", df_sbp)
+
+df_sbp_recodes <- df_sbp |> 
+  select(SEQN, year,
+         chol_tot_mgdL = LBXSCH,
+         trig_mgdL     = LBXSTR,
+         gluc_mgdL     = LBXSGL,
+         bun_mgdL      = LBXSBU,
+         creat_mgdL    = LBXSCR,
+         sod_mmolL     = LBXSNASI) |> 
+  mutate(across(c(creat_mgdL, trig_mgdL, gluc_mgdL, bun_mgdL), ~ log(.)))
+
+ridge_years("SEQN", "year", df_sbp_recodes)
+
+
+#=====C-reactive protein=(READY)===============================================
 
 #ANALYTICAL NOTE: contains normal and high-sensitivity CRP (to be combined)
 
@@ -111,7 +132,7 @@ df_crp_only <- df_crp |>
 #check distributions by year
 ridge_years("SEQN", "year", df_crp_only)
 
-#=====Insulin==================================================================
+#=====Insulin=(READY)==========================================================
 
 # 1999="LAB10AM",
 # 2001="L10AM_B",
@@ -148,8 +169,15 @@ years_insul <- c(1999,
                  2015,
                  2017)
 
+#pull data
 df_insul <- pull_nhanes(names_insul, years_insul)
 
+#final
+df_insul_recodes <- df_insul |> 
+  select(SEQN, year, insulin_uUmL="LBXIN")
+
+#check distributions (looks good)
+ridge_years("SEQN", "year", df_insul_recodes |> mutate(insulin_uUmL = log(insulin_uUmL)))
 
 #=====Testosterone=(READY)=====================================================
 
@@ -207,7 +235,7 @@ ridge_years(id="SEQN", year="year", df=df_testo_adj)
 
 
 
-#=====Apolipoprotein B=========================================================
+#=====Apolipoprotein B=(READY)=================================================
 
 # 2005="TRIGLY_D",
 # 2007="ApoB_E",
@@ -229,7 +257,16 @@ years_apob <- seq(2005, 2015, 2)
 #apob data
 df_apob <- pull_nhanes(names_apob, years_apob)
 
-#=====Cholesterol - HDL========================================================
+#select apob
+df_apob_recode <- df_apob |> 
+  select(SEQN, year, "apob_mgdL"=LBXAPB)
+
+ridge_years("SEQN", "year", df_apob_recode)
+
+table(df_apob_recode$year, is.na(df_apob_recode$apob_mgdL))
+
+
+#=====Cholesterol=HDL=(READY)==================================================
 
 # 1999="Lab13",
 # 2001="l13_b",
@@ -258,6 +295,15 @@ years_hdl <- seq(1999, 2017, 2)
 
 #hdl data
 df_hdl <- pull_nhanes(names_hdl, years_hdl)
+
+#select HDL (Total cholesterol not present in all years)
+df_hdl_recodes <- df_hdl |> 
+  select(SEQN, year, chol_hdl_mmolL=LBDHDDSI)
+
+#check distributions (looks good)
+ridge_years("SEQN", "year", df_hdl_recodes)
+
+
 
 #=====Complete blood count ====================================================
 
@@ -325,11 +371,12 @@ df_ghb <- pull_nhanes(names_ghb, years_ghb)
 
 #write update message
 message="
-Prepared testosterone data including unit conversion and deming regression
-adjustment. 
+Updated biomarker files, including adjustments. Still working on standard 
+biophysical profile data, which will require several adjustment. 
 "
 
 #update log
 update_log(file="log_laboratory.txt",
            author="Peter T. Tanklsey",
            message = message)
+
