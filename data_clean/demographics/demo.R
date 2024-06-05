@@ -126,7 +126,7 @@ demo_recodes |>
 #  TRUE 59204
 
 #export data
-export(demo_recodes, "demo_99to17.rds")
+export(demo_recodes, "demo_clean.rds")
 
 
 
@@ -134,7 +134,7 @@ export(demo_recodes, "demo_99to17.rds")
 
 #write update message
 message="
-Updated script to include common functions.
+Updated name of saved data to include '_clean' suffi.
 "
 
 #update log
