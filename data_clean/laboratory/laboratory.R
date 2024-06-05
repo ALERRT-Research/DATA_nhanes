@@ -2,6 +2,7 @@
 source("../cleaning_packages.R")
 
 #NOTE: ALL SELECTED BIOMARKERS NEED TO BE CHECKED FOR ANALYTICAL CORRECTIONS WAVE-TO-WAVE
+#Convention: ALWAYS PREFER --FORWARD-- DEMING EQUATIONS
 
 #=====Lab codebook=============================================================
 # url <- "https://wwwn.cdc.gov/nchs/nhanes/search/variablelist.aspx?Component=Laboratory"
@@ -29,6 +30,7 @@ convert_units <- function(df, var_name_old, var_name_new, input_unit, output_uni
   return(df)
 }
 
+keep_items <- c(ls(), "keep_items")
 
 #=====Standard biochemistry profile============================================
 
@@ -63,23 +65,33 @@ years_sbp <- seq(1999, 2017, 2)
 df_sbp <- pull_nhanes(names_sbp, years_sbp)
 
 #contents: cholesterol total, triglyceride, glucose, blood urea nitrogen, creatinine, sodium
-
-lab_names <- enframe(get_label(df_sbp))
+# lab_names <- enframe(get_label(df_sbp))
 
 ridge_years("SEQN", "year", df_sbp)
 
 df_sbp_recodes <- df_sbp |> 
   select(SEQN, year,
-         chol_tot_mgdL = LBXSCH,
-         trig_mgdL     = LBXSTR,
+         chol_tot_mgdL = LBXSCH, #adjustment needed
+         trig_mgdL     = LBXSTR, #adjustment needed
          gluc_mgdL     = LBXSGL,
-         bun_mgdL      = LBXSBU,
-         creat_mgdL    = LBXSCR,
+         bun_mgdL      = LBXSBU, #adjustment needed
+         creat_mgdL    = LBXSCR,  #adjustment needed
          sod_mmolL     = LBXSNASI) |> 
-  mutate(across(c(creat_mgdL, trig_mgdL, gluc_mgdL, bun_mgdL), ~ log(.)))
+  #apply forward deming equations to years prior to 2017
+  mutate(chol_tot_mgdL = case_when((year==2017) ~ chol_tot_mgdL,
+                                   TRUE         ~ 0.9556*chol_tot_mgdL+2.105),
+         trig_mgdL     = case_when((year==2017) ~ trig_mgdL,
+                                   TRUE         ~ 1.036*trig_mgdL+7.271),
+         bun_mgdL      = case_when((year==2017) ~ bun_mgdL,
+                                   TRUE         ~ 0.9992*bun_mgdL+0.4484),
+         creat_mgdL    = case_when((year==2017) ~ creat_mgdL,
+                                   TRUE         ~ 0.9515*creat_mgdL+0.06608))
 
 ridge_years("SEQN", "year", df_sbp_recodes)
 
+#clean up environment
+keep_items <- c(keep_items, "df_sbp_recodes")
+rm(list = setdiff(ls(), keep_items))
 
 #=====C-reactive protein=(READY)===============================================
 
@@ -122,15 +134,18 @@ df_crp <- pull_nhanes(names_crp, years_crp)
 
 
 #restrict to CRP only (convert CRP to hsCRP?)
-df_crp_only <- df_crp |> 
+df_crp_recodes <- df_crp |> 
   select(SEQN, year, crp=LBXCRP, crp_hs=LBXHSCRP) |> 
   mutate(crp_combined = case_when((!is.na(crp)) ~ crp*10,
                                   (!is.na(crp_hs)) ~ crp_hs,
-                                  TRUE ~ NA_real_)) |> 
-  mutate(across(-c(SEQN, year), ~log(.+1)))
+                                  TRUE ~ NA_real_))
 
-#check distributions by year
-ridge_years("SEQN", "year", df_crp_only)
+#check distributions by year (looks good)
+ridge_years("SEQN", "year", df_crp_recodes |> mutate(across(-c(SEQN, year), ~ log(. +1))))
+
+#clean up environment
+keep_items <- c(keep_items, "df_crp_recodes")
+rm(list = setdiff(ls(), keep_items))
 
 #=====Insulin=(READY)==========================================================
 
@@ -179,6 +194,10 @@ df_insul_recodes <- df_insul |>
 #check distributions (looks good)
 ridge_years("SEQN", "year", df_insul_recodes |> mutate(insulin_uUmL = log(insulin_uUmL)))
 
+#clean up environment
+keep_items <- c(keep_items, "df_insul_recodes")
+rm(list = setdiff(ls(), keep_items))
+
 #=====Testosterone=(READY)=====================================================
 
 #ANALYTICAL NOTE. SEE: https://wwwn.cdc.gov/Nchs/Nhanes/2013-2014/TST_H.htm
@@ -210,20 +229,20 @@ years_testo <- c(1999,
 df_testo <- pull_nhanes(names_testo, years_testo)
 
 #convert early testo from ng/mL to ng/dL
-df_testo_recodes <- convert_units(df_testo, "SSTESTO", "SSTESTO_ngdL", "ng/mL", "ng/dL", drop_after = TRUE)
+df_testo_adj <- convert_units(df_testo, "SSTESTO", "SSTESTO_ngdL", "ng/mL", "ng/dL", drop_after = TRUE)
 
 #combine and apply deming regression equation to pre-2013 data
-df_testo_adj <- df_testo_recodes |> 
+df_testo_recodes <- df_testo_adj |> 
   mutate(testo_tot_unadj = ifelse(!is.na(SSTESTO_ngdL), SSTESTO_ngdL, LBXTST)) |> 
   mutate(testo_tot = case_when((year %in% c(1999, 2001, 2003, 2011)) ~ 1.021*testo_tot_unadj-0.178,
-                                   TRUE ~ testo_tot_unadj)) |> 
+                               TRUE ~ testo_tot_unadj)) |> 
   select(SEQN, year, testo_tot)
 
 #check distributions (2011 and later waves have a distinct peak at low levels)
 #check for subgroups (females, minors, etc)
-ridge_years(id="SEQN", year="year", df=df_testo_adj)
+ridge_years(id="SEQN", year="year", df=df_testo_recodes)
 
-# #pull in demo data (dropping females and minors normalized the distributions)
+# #pull in demo data; select adult males
 # demo_male_18 <- import("../demographics/demo_99to17.rds") |> 
 #   filter(gender=="Male" & age_screen_yr >=18) |>
 #   pull(SEQN)
@@ -233,7 +252,9 @@ ridge_years(id="SEQN", year="year", df=df_testo_adj)
 #               select(SEQN, year, testo_tot) |> 
 #               filter(SEQN %in% demo_male_18))
 
-
+#clean up environment
+keep_items <- c(keep_items, "df_testo_recodes")
+rm(list = setdiff(ls(), keep_items))
 
 #=====Apolipoprotein B=(READY)=================================================
 
@@ -258,13 +279,14 @@ years_apob <- seq(2005, 2015, 2)
 df_apob <- pull_nhanes(names_apob, years_apob)
 
 #select apob
-df_apob_recode <- df_apob |> 
+df_apob_recodes <- df_apob |> 
   select(SEQN, year, "apob_mgdL"=LBXAPB)
 
-ridge_years("SEQN", "year", df_apob_recode)
+ridge_years("SEQN", "year", df_apob_recodes)
 
-table(df_apob_recode$year, is.na(df_apob_recode$apob_mgdL))
-
+#clean up environment
+keep_items <- c(keep_items, "df_apob_recodes")
+rm(list = setdiff(ls(), keep_items))
 
 #=====Cholesterol=HDL=(READY)==================================================
 
@@ -303,39 +325,84 @@ df_hdl_recodes <- df_hdl |>
 #check distributions (looks good)
 ridge_years("SEQN", "year", df_hdl_recodes)
 
+#clean up environment
+keep_items <- c(keep_items, "df_hdl_recodes")
+rm(list = setdiff(ls(), keep_items))
 
+#=====Cholesterol=LDL=(READY)==================================================
 
-#=====Complete blood count ====================================================
-
-# 1999="LAB25",
-# 2001="L25_B",
-# 2003="L25_C",
-# 2005="CBC_D",
-# 2007="CBC_E",
-# 2009="CBC_F",
-# 2011="CBC_G",
-# 2013="CBC_H",
-# 2015="CBC_I",
-# 2017="CBC_J"
+# 1999="Lab13",
+# 2001="l13_b",
+# 2003="l13_c",
+# 2005="TRIGLY_D",
+# 2007="TRIGLY_E",
+# 2009="TRIGLY_F",
+# 2011="TRIGLY_G",
+# 2013="TRIGLY_H",
+# 2015="TRIGLY_I",
+# 2017="TRIGLY_J"
 
 #set df names
-names_cbc <- c("LAB25",
-               "L25_B",
-               "L25_C",
-               "CBC_D",
-               "CBC_E",
-               "CBC_F",
-               "CBC_G",
-               "CBC_H",
-               "CBC_I",
-               "CBC_J")
+names_ldl <- c("LAB13AM",
+               "L13AM_B",
+               "L13AM_C",
+               "TRIGLY_D",
+               "TRIGLY_E",
+               "TRIGLY_F",
+               "TRIGLY_G",
+               "TRIGLY_H",
+               "TRIGLY_I",
+               "TRIGLY_J")
 #set years
-years_cbc <- seq(1999, 2017, 2)
+years_ldl <- seq(1999, 2017, 2)
 
 #hdl data
-df_cbc <- pull_nhanes(names_cbc, years_cbc)
+df_ldl <- pull_nhanes(names_ldl, years_ldl)
 
-#=====Glycohemoglobin (HbA1c)==================================================
+ridge_years("SEQN", "year", df_ldl)
+
+#select LDL
+df_ldl_recodes <- df_ldl |> 
+  select(SEQN, year, chol_ldl_mgdL=LBDLDL)
+
+#check distributions (looks good)
+ridge_years("SEQN", "year", df_ldl_recodes)
+
+#clean up environment
+keep_items <- c(keep_items, "df_ldl_recodes")
+rm(list = setdiff(ls(), keep_items))
+
+# #=====Complete blood count ====================================================
+# 
+# # 1999="LAB25",
+# # 2001="L25_B",
+# # 2003="L25_C",
+# # 2005="CBC_D",
+# # 2007="CBC_E",
+# # 2009="CBC_F",
+# # 2011="CBC_G",
+# # 2013="CBC_H",
+# # 2015="CBC_I",
+# # 2017="CBC_J"
+# 
+# #set df names
+# names_cbc <- c("LAB25",
+#                "L25_B",
+#                "L25_C",
+#                "CBC_D",
+#                "CBC_E",
+#                "CBC_F",
+#                "CBC_G",
+#                "CBC_H",
+#                "CBC_I",
+#                "CBC_J")
+# #set years
+# years_cbc <- seq(1999, 2017, 2)
+# 
+# #hdl data
+# df_cbc <- pull_nhanes(names_cbc, years_cbc)
+
+#=====Glycohemoglobin (HbA1c)=(READY)==========================================
 
 # 1999="LAB10",
 # 2001="L10_B",
@@ -365,14 +432,19 @@ years_ghb <- seq(1999, 2017, 2)
 #hdl data
 df_ghb <- pull_nhanes(names_ghb, years_ghb)
 
+df_ghb_recodes <- df_ghb |> 
+  select(SEQN, year, hba1c_pct=LBXGH)
 
+#clean up environment
+keep_items <- c(keep_items, "df_ghb_recodes")
+rm(list = setdiff(ls(), keep_items))
 
 #=====update log file==========================================================
 
 #write update message
 message="
-Updated biomarker files, including adjustments. Still working on standard 
-biophysical profile data, which will require several adjustment. 
+Several updates. Added LDL. Completed adjustments of all vars. Added env-cleaning
+script to each section. Next up: combine data.
 "
 
 #update log
