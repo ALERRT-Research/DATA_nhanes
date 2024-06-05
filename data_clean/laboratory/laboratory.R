@@ -73,7 +73,6 @@ df_sbp_recodes <- df_sbp |>
   select(SEQN, year,
          chol_tot_mgdL = LBXSCH, #adjustment needed
          trig_mgdL     = LBXSTR, #adjustment needed
-         gluc_mgdL     = LBXSGL,
          bun_mgdL      = LBXSBU, #adjustment needed
          creat_mgdL    = LBXSCR,  #adjustment needed
          sod_mmolL     = LBXSNASI) |> 
@@ -85,12 +84,76 @@ df_sbp_recodes <- df_sbp |>
          bun_mgdL      = case_when((year==2017) ~ bun_mgdL,
                                    TRUE         ~ 0.9992*bun_mgdL+0.4484),
          creat_mgdL    = case_when((year==2017) ~ creat_mgdL,
-                                   TRUE         ~ 0.9515*creat_mgdL+0.06608))
+                                   TRUE         ~ 0.9515*creat_mgdL+0.06608)) |> 
+  var_labels(chol_tot_mgdL = "Cholesterol (Total) (mg/dL)",
+             trig_mgdL     = "Triglycerides (mg/dL)",
+             gluc_mgdL     = "Glucose (mg/dL)",
+             bun_mgdL      = "Blood urea nitrate (mg/dL)",
+             creat_mgdL    = "Creatinine (mg/dL)",
+             sod_mmolL     = "Sodium (mmol/L)")
 
 ridge_years("SEQN", "year", df_sbp_recodes)
 
 #clean up environment
 keep_items <- c(keep_items, "df_sbp_recodes")
+rm(list = setdiff(ls(), keep_items))
+
+#=====Glucose=()============================================
+
+#ANALYTIC NOTE:
+#
+
+# 1999="LAB10AM",
+# 2001="L10AM_B",
+# 2003="L10AM_C",
+# 2005="GLU_D",
+# 2007="GLU_E",
+# 2009="GLU_F",
+# 2011="GLU_G",
+# 2013="GLU_H",
+# 2015="GLU_I",
+# 2017="GLU_J"
+
+#set df names
+names_glu <- c("LAB10AM",
+               "L10AM_B",
+               "L10AM_C",
+               "GLU_D",
+               "GLU_E",
+               "GLU_F",
+               "GLU_G",
+               "GLU_H",
+               "GLU_I",
+               "GLU_J")
+#set years
+years_glu <- seq(1999, 2017, 2)
+
+#SBP data
+df_glu <- pull_nhanes(names_glu, years_glu)
+
+ridge_years("SEQN", "year", df_glu)
+
+df_glu_recodes <- df_glu |> 
+  select(SEQN, year, gluc_plas_mgdL=LBXGLU) |> 
+  #1999-2002 -> 2003 onward
+  mutate(gluc_plas_mgdL = case_when((year<2003) ~ (1.0027*gluc_plas_mgdL)-2.2934,
+                                    TRUE ~ gluc_plas_mgdL)) |> 
+  #1999-2004 -> 2005 onward
+  mutate(gluc_plas_mgdL = case_when((year<2005) ~ (0.9815*gluc_plas_mgdL)-3.5707,
+                                    TRUE ~ gluc_plas_mgdL)) |> 
+  #1999-2006 -> 2007 onward
+  mutate(gluc_plas_mgdL = case_when((year<2007) ~ gluc_plas_mgdL+1.148,
+                                    TRUE ~ gluc_plas_mgdL)) |> 
+  #1999-2014 -> 2015 onward
+  mutate(gluc_plas_mgdL = case_when((year<2015) ~ (1.023*gluc_plas_mgdL)-0.5108,
+                                    TRUE ~ gluc_plas_mgdL)) |> 
+  var_labels(gluc_plas_mgdL = "glucose (plasma) (mg/dL)")
+
+#check distributions (looks good)
+ridge_years("SEQN", "year", df_glu_recodes)
+
+#clean up environment
+keep_items <- c(keep_items, "df_glu_recodes")
 rm(list = setdiff(ls(), keep_items))
 
 #=====C-reactive protein=(READY)===============================================
@@ -133,21 +196,30 @@ years_crp <- c(1999,
 df_crp <- pull_nhanes(names_crp, years_crp)
 
 
-#restrict to CRP only (convert CRP to hsCRP?)
+#restrict to CRP only (convert CRP to hsCRP)
 df_crp_recodes <- df_crp |> 
   select(SEQN, year, crp=LBXCRP, crp_hs=LBXHSCRP) |> 
-  mutate(crp_combined = case_when((!is.na(crp)) ~ crp*10,
-                                  (!is.na(crp_hs)) ~ crp_hs,
-                                  TRUE ~ NA_real_))
+  mutate(crp_hs_mgL = case_when((!is.na(crp)) ~ crp*10,
+                                (!is.na(crp_hs)) ~ crp_hs,
+                                TRUE ~ NA_real_)) |> 
+  var_labels(crp_hs_mgL = "C-reactive protein (mg/L)") |> 
+  select(-c(crp, crp_hs))
 
 #check distributions by year (looks good)
-ridge_years("SEQN", "year", df_crp_recodes |> mutate(across(-c(SEQN, year), ~ log(. +1))))
+ridge_years("SEQN", "year", df_crp_recodes |> mutate(crp_hs_mgL = log(crp_hs_mgL+1)))
 
 #clean up environment
 keep_items <- c(keep_items, "df_crp_recodes")
 rm(list = setdiff(ls(), keep_items))
 
 #=====Insulin=(READY)==========================================================
+
+#ANALYTIC NOTE: 
+# https://wwwn.cdc.gov/Nchs/Nhanes/2003-2004/L10AM_C.htm
+# https://wwwn.cdc.gov/Nchs/Nhanes/2005-2006/GLU_D.htm
+# https://wwwn.cdc.gov/nchs/nhanes/2011-2012/GLU_G.htm
+# https://wwwn.cdc.gov/Nchs/Nhanes/2013-2014/INS_H.htm
+
 
 # 1999="LAB10AM",
 # 2001="L10AM_B",
@@ -189,7 +261,21 @@ df_insul <- pull_nhanes(names_insul, years_insul)
 
 #final
 df_insul_recodes <- df_insul |> 
-  select(SEQN, year, insulin_uUmL="LBXIN")
+  select(SEQN, year, insulin_uUmL="LBXIN") |> 
+  #apply adjustments
+  #1999-2002 -> 2003 onward
+  mutate(insulin_uUmL = case_when((year < 2003) ~ (1.0027*insulin_uUmL)+2.2934,
+                                  TRUE ~ insulin_uUmL)) |> 
+  #1999-2004 -> 2005 onward
+  mutate(insulin_uUmL = case_when((year < 2005) ~ (0.9591*insulin_uUmL)+1.4890,
+                                  TRUE ~ insulin_uUmL)) |> 
+  #1999-2010 -> 2011 onward
+  mutate(insulin_uUmL = case_when((year < 2011) ~ (0.8868*insulin_uUmL)+(0.0011*(insulin_uUmL^2)),
+                                  TRUE ~ insulin_uUmL)) |> 
+  #1999-2012 -> 2013 onward
+  mutate(insulin_uUmL = case_when((year < 2013) ~ 10^((1.024*log10(insulin_uUmL))-0.0802),
+                                  TRUE ~ insulin_uUmL)) |> 
+  var_labels(insulin_uUmL = "Insulin (uU/mL)")
 
 #check distributions (looks good)
 ridge_years("SEQN", "year", df_insul_recodes |> mutate(insulin_uUmL = log(insulin_uUmL)))
@@ -228,15 +314,16 @@ years_testo <- c(1999,
 # testo data
 df_testo <- pull_nhanes(names_testo, years_testo)
 
-#convert early testo from ng/mL to ng/dL
+#convert early years of testo from ng/mL to ng/dL
 df_testo_adj <- convert_units(df_testo, "SSTESTO", "SSTESTO_ngdL", "ng/mL", "ng/dL", drop_after = TRUE)
 
 #combine and apply deming regression equation to pre-2013 data
 df_testo_recodes <- df_testo_adj |> 
-  mutate(testo_tot_unadj = ifelse(!is.na(SSTESTO_ngdL), SSTESTO_ngdL, LBXTST)) |> 
-  mutate(testo_tot = case_when((year %in% c(1999, 2001, 2003, 2011)) ~ 1.021*testo_tot_unadj-0.178,
-                               TRUE ~ testo_tot_unadj)) |> 
-  select(SEQN, year, testo_tot)
+  mutate(testo_tot_ngdL_unadj = ifelse(!is.na(SSTESTO_ngdL), SSTESTO_ngdL, LBXTST)) |> 
+  mutate(testo_tot_ngdL = case_when((year %in% c(1999, 2001, 2003, 2011)) ~ 1.021*testo_tot_ngdL_unadj-0.178,
+                               TRUE ~ testo_tot_ngdL_unadj)) |> 
+  var_labels(testo_tot_ngdL = "Testosterone (ng/dL)") |> 
+  select(SEQN, year, testo_tot_ngdL)
 
 #check distributions (2011 and later waves have a distinct peak at low levels)
 #check for subgroups (females, minors, etc)
@@ -426,6 +513,7 @@ names_ghb <- c("LAB10",
                "GHB_H",
                "GHB_I",
                "GHB_J")
+
 #set years
 years_ghb <- seq(1999, 2017, 2)
 
@@ -433,18 +521,34 @@ years_ghb <- seq(1999, 2017, 2)
 df_ghb <- pull_nhanes(names_ghb, years_ghb)
 
 df_ghb_recodes <- df_ghb |> 
-  select(SEQN, year, hba1c_pct=LBXGH)
+  select(SEQN, year, hba1c_pct=LBXGH) |> 
+  var_labels(hba1c_pct = "Glycohemoglobin (%)")
 
 #clean up environment
 keep_items <- c(keep_items, "df_ghb_recodes")
 rm(list = setdiff(ls(), keep_items))
 
+#=====Combine data=============================================================
+
+df_list <- list(df_apob_recodes, 
+                df_crp_recodes, 
+                df_ghb_recodes, 
+                df_hdl_recodes, 
+                df_insul_recodes, 
+                df_ldl_recodes, 
+                df_sbp_recodes, 
+                df_testo_recodes
+)
+df_all <- reduce(df_list, full_join)
+
+
+naniar::gg_miss_var(df_all)
+
 #=====update log file==========================================================
 
 #write update message
 message="
-Several updates. Added LDL. Completed adjustments of all vars. Added env-cleaning
-script to each section. Next up: combine data.
+Added separate section for glucose with adjustments.
 "
 
 #update log

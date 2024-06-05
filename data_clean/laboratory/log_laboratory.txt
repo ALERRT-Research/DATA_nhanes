@@ -2,6 +2,13 @@
 Peter T. Tanklsey
 
 Message:
+Added separate section for glucose with adjustments.
+
+
+06-05-2024
+Peter T. Tanklsey
+
+Message:
 Several updates. Added LDL. Completed adjustments of all vars. Added
 env-cleaning script to each section. Next up: combine data.
 
