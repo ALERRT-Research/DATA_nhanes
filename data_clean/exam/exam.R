@@ -43,7 +43,7 @@ years_bp <- seq(1999, 2017, 2)
 df_bp <- pull_nhanes(names_bp, years_bp, "BPAEN1")
 
 #check distributions by year
-# ridge_years("SEQN", "year", df_bp)
+ridge_years("SEQN", "year", df_bp)
 
 #recode 
 df_bp_recodes <- df_bp |> 
