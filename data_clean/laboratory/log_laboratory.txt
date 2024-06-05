@@ -2,6 +2,15 @@
 Peter T. Tanklsey
 
 Message:
+Split out glucose from SBP and added triglycerides to chol-LDL sections. This
+was to keep to the NHANES preferred versions of variables. Also saved out an
+initial completed version of the lab data (12 vars, ~87K cases).
+
+
+06-05-2024
+Peter T. Tanklsey
+
+Message:
 Added separate section for glucose with adjustments.
 
 

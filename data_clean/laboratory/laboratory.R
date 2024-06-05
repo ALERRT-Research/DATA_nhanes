@@ -34,7 +34,8 @@ keep_items <- c(ls(), "keep_items")
 
 #=====Standard biochemistry profile============================================
 
-#Analytic note: adjustments needed, see: https://wwwn.cdc.gov/Nchs/Nhanes/2017-2018/BIOPRO_J.htm
+#Analytic note: 
+# https://wwwn.cdc.gov/Nchs/Nhanes/2017-2018/BIOPRO_J.htm
 
 # 1999="LAB18",
 # 2001="LAB40_B",
@@ -49,7 +50,7 @@ keep_items <- c(ls(), "keep_items")
 
 #set df names
 names_sbp <- c("LAB18",
-               "L40_B",
+               "L40_B", #different name for creatinine: LBDSCR
                "L40_C",
                "BIOPRO_D",
                "BIOPRO_E",
@@ -70,24 +71,21 @@ df_sbp <- pull_nhanes(names_sbp, years_sbp)
 ridge_years("SEQN", "year", df_sbp)
 
 df_sbp_recodes <- df_sbp |> 
+  mutate(LBXSCR = ifelse(is.na(LBXSCR), LBDSCR, LBXSCR)) |> 
   select(SEQN, year,
          chol_tot_mgdL = LBXSCH, #adjustment needed
-         trig_mgdL     = LBXSTR, #adjustment needed
          bun_mgdL      = LBXSBU, #adjustment needed
          creat_mgdL    = LBXSCR,  #adjustment needed
-         sod_mmolL     = LBXSNASI) |> 
+         sod_mmolL     = LBXSNASI
+         ) |> 
   #apply forward deming equations to years prior to 2017
   mutate(chol_tot_mgdL = case_when((year==2017) ~ chol_tot_mgdL,
                                    TRUE         ~ 0.9556*chol_tot_mgdL+2.105),
-         trig_mgdL     = case_when((year==2017) ~ trig_mgdL,
-                                   TRUE         ~ 1.036*trig_mgdL+7.271),
          bun_mgdL      = case_when((year==2017) ~ bun_mgdL,
                                    TRUE         ~ 0.9992*bun_mgdL+0.4484),
          creat_mgdL    = case_when((year==2017) ~ creat_mgdL,
                                    TRUE         ~ 0.9515*creat_mgdL+0.06608)) |> 
   var_labels(chol_tot_mgdL = "Cholesterol (Total) (mg/dL)",
-             trig_mgdL     = "Triglycerides (mg/dL)",
-             gluc_mgdL     = "Glucose (mg/dL)",
              bun_mgdL      = "Blood urea nitrate (mg/dL)",
              creat_mgdL    = "Creatinine (mg/dL)",
              sod_mmolL     = "Sodium (mmol/L)")
@@ -98,10 +96,13 @@ ridge_years("SEQN", "year", df_sbp_recodes)
 keep_items <- c(keep_items, "df_sbp_recodes")
 rm(list = setdiff(ls(), keep_items))
 
-#=====Glucose=()============================================
+#=====Glucose=(READY)==========================================================
 
 #ANALYTIC NOTE:
-#
+# https://wwwn.cdc.gov/nchs/nhanes/2003-2004/L10AM_C.htm
+# https://wwwn.cdc.gov/nchs/nhanes/2005-2006/GLU_D.htm
+# https://wwwn.cdc.gov/Nchs/Nhanes/2007-2008/GLU_E.htm
+# https://wwwn.cdc.gov/Nchs/Nhanes/2015-2016/GLU_I.htm
 
 # 1999="LAB10AM",
 # 2001="L10AM_B",
@@ -158,7 +159,8 @@ rm(list = setdiff(ls(), keep_items))
 
 #=====C-reactive protein=(READY)===============================================
 
-#ANALYTICAL NOTE: contains normal and high-sensitivity CRP (to be combined)
+#ANALYTICAL NOTE: 
+# Contains normal and high-sensitivity CRP (to be combined)
 
 # 1999="LAB11",
 # 2001="L11_B",
@@ -416,7 +418,7 @@ ridge_years("SEQN", "year", df_hdl_recodes)
 keep_items <- c(keep_items, "df_hdl_recodes")
 rm(list = setdiff(ls(), keep_items))
 
-#=====Cholesterol=LDL=(READY)==================================================
+#=====Cholesterol=LDL=(READY)=Triglyceride=(READY)=============================
 
 # 1999="Lab13",
 # 2001="l13_b",
@@ -450,7 +452,9 @@ ridge_years("SEQN", "year", df_ldl)
 
 #select LDL
 df_ldl_recodes <- df_ldl |> 
-  select(SEQN, year, chol_ldl_mgdL=LBDLDL)
+  select(SEQN, year, 
+         chol_ldl_mgdL=LBDLDL,
+         trig_mgdL=LBXTR)
 
 #check distributions (looks good)
 ridge_years("SEQN", "year", df_ldl_recodes)
@@ -537,18 +541,23 @@ df_list <- list(df_apob_recodes,
                 df_insul_recodes, 
                 df_ldl_recodes, 
                 df_sbp_recodes, 
-                df_testo_recodes
-)
+                df_testo_recodes)
+
 df_all <- reduce(df_list, full_join)
 
+#clear up env
+rm(list = setdiff(ls(), c("df_all", "update_log")))
 
-naniar::gg_miss_var(df_all)
+#save clean dataframe
+export(df_all, "lab_clean.rds")
 
 #=====update log file==========================================================
 
 #write update message
 message="
-Added separate section for glucose with adjustments.
+Split out glucose from SBP and added triglycerides to chol-LDL sections.
+This was to keep to the NHANES preferred versions of variables. Also saved out
+an initial completed version of the lab data (12 vars, ~87K cases).
 "
 
 #update log
