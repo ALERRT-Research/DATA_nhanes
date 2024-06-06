@@ -1,3 +1,11 @@
+06-06-2024
+Peter T. Tanksley
+
+Message:
+Added grip, BMI, and vo2max sections. Explored clean dataframe. Also added code
+for cleaning env in each section.
+
+
 05-02-2024
 Peter T. Tanksley
 

@@ -79,7 +79,7 @@ update_log <- function(file, author, message) {
 #check for outliers - Density by year
 ridge_years <- function(id=id, year=year, df=df) {
   df |> 
-    select(id, year, where(is.numeric)) |> 
+    select(all_of(id), all_of(year), where(is.numeric)) |> 
     pivot_longer(-c(id, year),
                  names_to="vars",
                  values_to="vals") |>
