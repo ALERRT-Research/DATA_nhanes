@@ -1,3 +1,11 @@
+06-06-2024
+Peter T. Tanksley
+
+Message:
+Set up initial codes but found major differences in occupational codes across
+years (1999-2004 vs 2005 onward). Need to resolve before moving forward.
+
+
 05-28-2024
 Peter T. Tanksley
 
