@@ -1,0 +1,15 @@
+06-07-2024
+Peter T. Tanksley
+
+Message:
+Started work on DEXA files. Found that 1999-2006 only come as multiple
+imputation files (x5). Consider the utility of including/excluding them.
+
+
+06-07-2024
+Peter T. Tanksley
+
+Message:
+Initialized log.
+
+
