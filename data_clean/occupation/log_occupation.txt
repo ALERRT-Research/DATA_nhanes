@@ -1,3 +1,21 @@
+06-07-2024
+Peter T. Tanksley
+
+Message:
+Saved first draft of occupation data. Consider adding retirement indicator in
+v2
+
+
+06-07-2024
+Peter T. Tanksley
+
+Message:
+Fixed coding of occupational code descriptions. Now dataset contains an
+indicator for which census codes (1990 or 2000) it uses. I also added three
+indictors for first responders (current, longest, ever). I found ~550 in the
+dataset.
+
+
 06-06-2024
 Peter T. Tanksley
 

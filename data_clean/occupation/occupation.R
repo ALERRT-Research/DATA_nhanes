@@ -1,6 +1,11 @@
 source("../cleaning_packages.R")
 
 #--------OCUPATIONAL CODES SWITCH ACROSS YEARS, CONFIRM CODING
+#--------CODES FOR FIRST RESPONDERS ARE "18" FROM 1999-2004 AND "12" ONWARD
+#--------READ IN CODEBOOK
+
+occ_codebook <- import("nhanes_occ_census_crosswalk.xlsx") |> 
+  mutate(occ_desc = str_to_lower(occ_desc))
 
 #=====Occupation=()===================================================
 
@@ -15,12 +20,31 @@ source("../cleaning_packages.R")
 # 2015="OCP_I",
 # 2017="OCP_J"
 
+#=====BLOCK 1 (1999-2003)
 #set names
 names_ocq <- c("OCQ",
                "OCQ_B",
-               "OCQ_C",
-               "OCQ_D",
-               "OCQ_E",
+               "OCQ_C")
+
+#set years
+years_ocq <- seq(1999, 2003, 2)
+
+#BP data
+df_ocq_block1 <- pull_nhanes(names_ocq, years_ocq, "OCD231|OCD241|OCD392")
+
+#=====BLOCK 2 (2005)
+#set names
+names_ocq <- "OCQ_D"
+
+#set years
+years_ocq <- 2005
+
+#BP data
+df_ocq_block2 <- pull_nhanes(names_ocq, years_ocq)
+
+#=====BLOCK 3 (2007 onward)
+#set names
+names_ocq <- c("OCQ_E",
                "OCQ_F",
                "OCQ_G",
                "OCQ_H",
@@ -28,76 +52,82 @@ names_ocq <- c("OCQ",
                "OCQ_J")
 
 #set years
-years_ocq <- seq(1999, 2017, 2)
+years_ocq <- seq(2007, 2017, 2)
 
 #BP data
-df_ocq <- pull_nhanes(names_ocq, years_ocq, "OCD231|OCD241|OCD392")
-
-#recode (NOTE: occupational code variables merged poorly)
-df_ocq_recodes <- df_ocq |> 
-  mutate(occ_current = case_when((is.na(OCD241)) ~ as.character(OCD240),
-                                 TRUE ~ as.character(OCD241)),
-         occ_longest = case_when((is.na(OCD392)) ~ as.character(OCD390),
-                                 TRUE ~ as.character(OCD392))) |> 
-  mutate(across(starts_with("occ"), ~ case_when((.=="1" ) ~ 'Management Occupations',
-                                                (.=="2" ) ~ 'Business, Financial Operations Occupations',
-                                                (.=="3" ) ~ 'Computer, Mathematical Occupations',
-                                                (.=="4" ) ~ 'Architecture, Engineering Occupations',
-                                                (.=="5" ) ~ 'Life, Physical, Social Science Occupations',
-                                                (.=="6" ) ~ 'Community, Social Services Occupations',
-                                                (.=="7" ) ~ 'Legal Occupations',
-                                                (.=="8" ) ~ 'Education, Training, Library Occupations',
-                                                (.=="9" ) ~ 'Arts, Design, Entertainment, Sports, Media Occupations',
-                                                (.=="10") ~ 'Healthcare Practitioner, Technical Occupations',
-                                                (.=="11") ~ 'Healthcare Support Occupations',
-                                                (.=="12") ~ 'Protective Service Occupations',
-                                                (.=="13") ~ 'Food Preparation, Serving Occupations',
-                                                (.=="14") ~ 'Building & Grounds Cleaning, Maintenance Occupations',
-                                                (.=="15") ~ 'Personal Care, Service Occupations',
-                                                (.=="16") ~ 'Sales & Related Occupations',
-                                                (.=="17") ~ 'Office, Administrative Support Occupations',
-                                                (.=="18") ~ 'Farming, Fishing, Forestry Occupations',
-                                                (.=="19") ~ 'Construction, Extraction Occupations',
-                                                (.=="20") ~ 'Installation, Maintenance, Repair Occupations',
-                                                (.=="21") ~ 'Production Occupations',
-                                                (.=="22") ~ 'Transportation, Material Moving Occupations',
-                                                (.=="23") ~ 'Armed Forces',
-                                                (.=="98") ~ 'Blank but applicable',
-                                                TRUE ~ .)))
-# select(SEQN, year,
-#        job_cur_occ  = OCD240,
-#        job_long_occ = OCD392,
-#        no_work      = OCQ380) |> 
-# mutate(across(starts_with("job"), ~ifelse(.==98, NA, .))) |> 
-# mutate(across(c(job_cur_occ, job_long_occ), ~case_when((is.na(.)) ~ NA_character_,
-#                                                       (.==12) ~ "first responder",
-#                                                       TRUE ~ "other"),
-#               .names = "{col}_fr"))
-#        var_labels(job_long_occ = "Occupation group code: longest job")
-
-#check distributions by year
-ridge_years("SEQN", "year", df_ocq_recodes)
-
-#clean up environment
-keep_items <- c(keep_items, "df_bp_recodes")
-rm(list = setdiff(ls(), keep_items))
+df_ocq_block3 <- pull_nhanes(names_ocq, years_ocq, "OCD231|OCD241|OCD392")
 
 
+#=====Recode and combine blocks================================================
 
+#block1
+df_ocq_block1_occ <- df_ocq_block1 |> 
+  select(SEQN, 
+         year, 
+         occ_cur_code= OCD240, 
+         occ_long_code= OCD390, 
+         occ_long_months= OCD395) |> 
+  left_join(occ_codebook |> filter(census_yr==1990) |> select(-census_yr), by=c("occ_cur_code"="occ_code")) |> 
+  rename(occ_cur_desc = occ_desc) |> 
+  left_join(occ_codebook |> filter(census_yr==1990) |> select(-census_yr), by=c("occ_long_code"="occ_code")) |> 
+  rename(occ_long_desc = occ_desc) |> 
+  mutate(occ_code_census_yr=1990)
 
+#block2
+df_ocq_block2_occ <- df_ocq_block2 |> 
+  select(SEQN, 
+         year, 
+         occ_cur_code= OCD241, 
+         occ_long_code= OCD392, 
+         occ_long_months= OCD395) |> 
+  left_join(occ_codebook |> filter(census_yr==2000) |> select(-census_yr), by=c("occ_cur_code"="occ_code")) |> 
+  rename(occ_cur_desc = occ_desc) |> 
+  left_join(occ_codebook |> filter(census_yr==2000) |> select(-census_yr), by=c("occ_long_code"="occ_code")) |> 
+  rename(occ_long_desc = occ_desc) |> 
+  mutate(occ_code_census_yr=2000)
 
+#block3
+df_ocq_block3_occ <- df_ocq_block3 |> 
+  select(SEQN, 
+         year, 
+         occ_cur_code= OCD241, 
+         occ_long_code= OCD392, 
+         occ_long_months= OCD395) |> 
+  mutate(across(ends_with("code"), ~str_to_lower(.))) |> 
+  left_join(occ_codebook |> filter(census_yr==2000) |> select(-census_yr), by=c("occ_cur_code"="occ_desc")) |> 
+  rename(occ_cur_desc = occ_cur_code,
+         occ_cur_code = occ_code) |> 
+  left_join(occ_codebook |> filter(census_yr==2000) |> select(-census_yr), by=c("occ_long_code"="occ_desc")) |> 
+  rename(occ_long_desc = occ_long_code,
+         occ_long_code = occ_code) |> 
+  mutate(occ_code_census_yr=2000)
 
+#combine
+df_ocq_recodes <- bind_rows(df_ocq_block1_occ, df_ocq_block2_occ, df_ocq_block3_occ) |> 
+  mutate(across(ends_with("code"), ~ifelse(. %in% c(98, 99), NA, .))) |> 
+  mutate(occ_cur_desc = ifelse(is.na(occ_cur_code), NA, occ_cur_desc),
+         occ_long_desc = ifelse(is.na(occ_long_code), NA, occ_long_desc)) |> 
+  mutate(first_resp_cur = case_when((is.na(occ_cur_desc)) ~ NA_character_,
+                                    (occ_cur_desc=="protective service occupations") ~ "Yes",
+                                    TRUE ~ "No")) |> 
+  mutate(first_resp_long = case_when((is.na(occ_long_desc)) ~ NA_character_,
+                                    (occ_long_desc=="protective service occupations") ~ "Yes",
+                                    TRUE ~ "No")) |> 
+  mutate(first_resp_ever = case_when((is.na(first_resp_cur) & is.na(first_resp_long)) ~ NA_character_,
+                                     (first_resp_cur=="Yes" | first_resp_long=="Yes") ~ "Yes",
+                                     TRUE ~ "No"))
 
+rm(list = setdiff(ls(), c("df_ocq_recodes", "update_log")))
 
+export(df_ocq_recodes, "occ_clean.rds")
 
 
 #=====update log file==========================================================
 
 #write update message
 message="
-Set up initial codes but found major differences in occupational codes across
-years (1999-2004 vs 2005 onward). Need to resolve before moving forward.
-"
+Saved first draft of occupation data. Consider adding retirement indicator in
+v2"
 
 #update log
 update_log(file="log_occupation.txt",
