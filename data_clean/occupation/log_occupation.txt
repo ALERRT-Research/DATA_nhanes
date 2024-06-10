@@ -1,3 +1,12 @@
+06-10-2024
+Peter T. Tanksley
+
+Message:
+Added employment indicator. I also added a variable for why someone was not
+employed (including retirement). Finally, I added a variable for number of
+hours worked (past week) and dropped categories/values for DK/refused.
+
+
 06-07-2024
 Peter T. Tanksley
 

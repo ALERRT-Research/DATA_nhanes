@@ -9,16 +9,16 @@ occ_codebook <- import("nhanes_occ_census_crosswalk.xlsx") |>
 
 #=====Occupation=()===================================================
 
-# 1999="OCP",
-# 2001="OCP_B",
-# 2003="OCP_C",
-# 2005="OCP_D",
-# 2007="OCP_E",
-# 2009="OCP_F",
-# 2011="OCP_G",
-# 2013="OCP_H",
-# 2015="OCP_I",
-# 2017="OCP_J"
+# 1999="OCQ",
+# 2001="OCQ_B",
+# 2003="OCQ_C",
+# 2005="OCQ_D",
+# 2007="OCQ_E",
+# 2009="OCQ_F",
+# 2011="OCQ_G",
+# 2013="OCQ_H",
+# 2015="OCQ_I",
+# 2017="OCQ_J"
 
 #=====BLOCK 1 (1999-2003)
 #set names
@@ -64,6 +64,10 @@ df_ocq_block3 <- pull_nhanes(names_ocq, years_ocq, "OCD231|OCD241|OCD392")
 df_ocq_block1_occ <- df_ocq_block1 |> 
   select(SEQN, 
          year, 
+         employed= OCD150,
+         unemployed_reason=OCQ380,
+         occ_hrs=OCD180,
+         occ_tenure_months=OCD270,
          occ_cur_code= OCD240, 
          occ_long_code= OCD390, 
          occ_long_months= OCD395) |> 
@@ -77,6 +81,10 @@ df_ocq_block1_occ <- df_ocq_block1 |>
 df_ocq_block2_occ <- df_ocq_block2 |> 
   select(SEQN, 
          year, 
+         employed= OCD150,
+         unemployed_reason=OCQ380,
+         occ_hrs=OCQ180,
+         # occ_tenure_months=OCD270, #not available
          occ_cur_code= OCD241, 
          occ_long_code= OCD392, 
          occ_long_months= OCD395) |> 
@@ -90,6 +98,10 @@ df_ocq_block2_occ <- df_ocq_block2 |>
 df_ocq_block3_occ <- df_ocq_block3 |> 
   select(SEQN, 
          year, 
+         employed= OCD150,
+         unemployed_reason=OCQ380,
+         occ_hrs=OCQ180,
+         occ_tenure_months=OCD270, #not available
          occ_cur_code= OCD241, 
          occ_long_code= OCD392, 
          occ_long_months= OCD395) |> 
@@ -107,6 +119,9 @@ df_ocq_recodes <- bind_rows(df_ocq_block1_occ, df_ocq_block2_occ, df_ocq_block3_
   mutate(across(ends_with("code"), ~ifelse(. %in% c(98, 99), NA, .))) |> 
   mutate(occ_cur_desc = ifelse(is.na(occ_cur_code), NA, occ_cur_desc),
          occ_long_desc = ifelse(is.na(occ_long_code), NA, occ_long_desc)) |> 
+  mutate(across(c(occ_hrs, occ_long_months), ~ if_else(. %in% c(77777, 99999), NA, .))) |> 
+  mutate(across(c(employed, unemployed_reason), ~ if_else(. %in% c("Refused", "Don't know"), NA_character_, .))) |> 
+  #first responder variables
   mutate(first_resp_cur = case_when((is.na(occ_cur_desc)) ~ NA_character_,
                                     (occ_cur_desc=="protective service occupations") ~ "Yes",
                                     TRUE ~ "No")) |> 
@@ -117,6 +132,11 @@ df_ocq_recodes <- bind_rows(df_ocq_block1_occ, df_ocq_block2_occ, df_ocq_block3_
                                      (first_resp_cur=="Yes" | first_resp_long=="Yes") ~ "Yes",
                                      TRUE ~ "No"))
 
+table(df_ocq_recodes$first_resp_ever) #nearly 1k first responders!
+#    No   Yes 
+# 45602   978 
+
+
 rm(list = setdiff(ls(), c("df_ocq_recodes", "update_log")))
 
 export(df_ocq_recodes, "occ_clean.rds")
@@ -126,8 +146,10 @@ export(df_ocq_recodes, "occ_clean.rds")
 
 #write update message
 message="
-Saved first draft of occupation data. Consider adding retirement indicator in
-v2"
+Added employment indicator. I also added a variable for why someone was not 
+employed (including retirement). Finally, I added a variable for number of 
+hours worked (past week) and dropped categories/values for DK/refused.
+"
 
 #update log
 update_log(file="log_occupation.txt",
