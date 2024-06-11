@@ -5,15 +5,16 @@ source("../cleaning_packages.R")
 # Waves start with no suffix [A] and continue starting with [B,C, ...N] )
 
 #Get waves (1999-2017)
-waves <- c("DEMO", paste0("DEMO_", LETTERS[2:10]))
+names_demo <- c("DEMO", paste0("DEMO_", LETTERS[2:10]))
 
-years <- seq(1999, 2017, by=2)
+years_demo <- seq(1999, 2017, by=2)
 
-demo_raw <- pull_nhanes(dataframes = waves, years=years, mismatch_regex = "DMD.*SIZ$|DMDHHSZ.*")
+demo <- pull_nhanes(names_demo, years_demo, mismatch_regex = "DMD.*SIZ$|DMDHHSZ.*")
 
 #bind all waves
-demo_recodes <- demo_raw |> 
-  select("SEQN"          = SEQN,
+demo_recodes <- demo |> 
+  select(SEQN,
+         year,
          "data_release"  = SDDSRVYR,
          "int_exm_stat"  = RIDSTATR,
          "period_6mo"    = RIDEXMON,
@@ -113,20 +114,26 @@ demo_recodes <- demo_raw |>
                                (preg_stat %in% c("SP not pregnant at exam", "The participant was not pregnant at exam")) ~ "no",
                                (preg_stat %in% c("Cannot ascertain if SP is pregnant at exam", "Cannot ascertain if the participant is pregnant at exam")) ~ "cannot determine",
                                TRUE ~ NA_character_),
-         preg_stat = fct_infreq(preg_stat))
+         preg_stat = fct_infreq(preg_stat)) 
 
-# #export labels as codebook
-# export(demo_labs, "demo_codebook.csv")
+demo_labs <- demo_recodes |> 
+  var_labels(citizen = "US citizen",
+             edu_child = "Highest grade (minors only) (harmonized, use this)",
+             edu_child_full = "Highest grade (minors only) (not harmonized)",
+             edu_adult = "Highest education level (adults)",
+             hh_num = "Number of individuals living in household",
+             preg_stat = "Prenancy status",
+             military_vet = "Military veteran?")
 
 #check number of adults
-demo_recodes |> 
+demo_labs |> 
   count(adults = age_screen_yr>=18)
 # adults     n
 # FALSE 42112
 #  TRUE 59204
 
 #export data
-export(demo_recodes, "demo_clean.rds")
+export(demo_labs, "demo_clean.rds")
 
 
 
@@ -134,7 +141,8 @@ export(demo_recodes, "demo_clean.rds")
 
 #write update message
 message="
-Updated name of saved data to include '_clean' suffi.
+Re-ran pipeline using updated pull_nhanes() function to add `year` variables.
+I also added some missing labels.
 "
 
 #update log

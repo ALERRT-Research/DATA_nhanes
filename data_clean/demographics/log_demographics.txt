@@ -1,3 +1,11 @@
+06-11-2024
+Peter T. Tanksley
+
+Message:
+Re-ran pipeline using updated pull_nhanes() function to add `year` variables. I
+also added some missing labels.
+
+
 06-05-2024
 Peter T. Tanksley
 
