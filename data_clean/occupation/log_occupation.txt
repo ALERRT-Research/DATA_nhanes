@@ -1,3 +1,12 @@
+06-11-2024
+Peter T. Tanksley
+
+Message:
+Updated employment variables. Now there is a binary indicator for employment
+status (employ_stat) and a categorical indicator for labor market status
+(labor_market_stat) that gives more details to the unemployed category.
+
+
 06-10-2024
 Peter T. Tanksley
 

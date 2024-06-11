@@ -121,6 +121,13 @@ df_ocq_recodes <- bind_rows(df_ocq_block1_occ, df_ocq_block2_occ, df_ocq_block3_
          occ_long_desc = ifelse(is.na(occ_long_code), NA, occ_long_desc)) |> 
   mutate(across(c(occ_hrs, occ_long_months), ~ if_else(. %in% c(77777, 99999), NA, .))) |> 
   mutate(across(c(employed, unemployed_reason), ~ if_else(. %in% c("Refused", "Don't know"), NA_character_, .))) |> 
+  mutate(employed = str_remove_all(employed, "[?,].*")) |>
+  mutate(labor_market_stat = case_when((is.na(employed) & is.na(unemployed_reason)) ~ NA_character_,
+                                       (is.na(unemployed_reason)) ~ employed,
+                                       TRUE ~ unemployed_reason)) |> 
+  mutate(employ_stat = case_when((is.na(labor_market_stat)) ~ NA_character_,
+                                 (labor_market_stat=="Working at a job or business") ~ "employed",
+                                 TRUE ~ "unemployed")) |> 
   #first responder variables
   mutate(first_resp_cur = case_when((is.na(occ_cur_desc)) ~ NA_character_,
                                     (occ_cur_desc=="protective service occupations") ~ "Yes",
@@ -130,7 +137,8 @@ df_ocq_recodes <- bind_rows(df_ocq_block1_occ, df_ocq_block2_occ, df_ocq_block3_
                                     TRUE ~ "No")) |> 
   mutate(first_resp_ever = case_when((is.na(first_resp_cur) & is.na(first_resp_long)) ~ NA_character_,
                                      (first_resp_cur=="Yes" | first_resp_long=="Yes") ~ "Yes",
-                                     TRUE ~ "No"))
+                                     TRUE ~ "No")) |> 
+  select(-c(employed, unemployed_reason))
 
 table(df_ocq_recodes$first_resp_ever) #nearly 1k first responders!
 #    No   Yes 
@@ -146,9 +154,9 @@ export(df_ocq_recodes, "occ_clean.rds")
 
 #write update message
 message="
-Added employment indicator. I also added a variable for why someone was not 
-employed (including retirement). Finally, I added a variable for number of 
-hours worked (past week) and dropped categories/values for DK/refused.
+Updated employment variables. Now there is a binary indicator for employment 
+status (employ_stat) and a categorical indicator for labor market status
+(labor_market_stat) that gives more details to the unemployed category.
 "
 
 #update log
