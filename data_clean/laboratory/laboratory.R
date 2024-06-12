@@ -12,8 +12,7 @@ source("../cleaning_packages.R")
 # #export
 # export(table_data, "nhanes_lab_codebook.csv")
 
-#import
-codebook <- import("nhanes_lab_codebook.csv")
+lab_codebook <- import("nhanes_lab_codebook.csv")
 
 #=====Define function for unit conversions=====================================
 
@@ -266,7 +265,7 @@ df_insul_recodes <- df_insul |>
   select(SEQN, year, insulin_uUmL="LBXIN") |> 
   #apply adjustments
   #1999-2002 -> 2003 onward
-  mutate(insulin_uUmL = case_when((year < 2003) ~ (1.0027*insulin_uUmL)+2.2934,
+  mutate(insulin_uUmL = case_when((year < 2003) ~ (1.0027*insulin_uUmL)-2.2934,
                                   TRUE ~ insulin_uUmL)) |> 
   #1999-2004 -> 2005 onward
   mutate(insulin_uUmL = case_when((year < 2005) ~ (0.9591*insulin_uUmL)+1.4890,
@@ -322,7 +321,7 @@ df_testo_adj <- convert_units(df_testo, "SSTESTO", "SSTESTO_ngdL", "ng/mL", "ng/
 #combine and apply deming regression equation to pre-2013 data
 df_testo_recodes <- df_testo_adj |> 
   mutate(testo_tot_ngdL_unadj = ifelse(!is.na(SSTESTO_ngdL), SSTESTO_ngdL, LBXTST)) |> 
-  mutate(testo_tot_ngdL = case_when((year %in% c(1999, 2001, 2003, 2011)) ~ 1.021*testo_tot_ngdL_unadj-0.178,
+  mutate(testo_tot_ngdL = case_when((year %in% c(1999, 2001, 2003, 2011)) ~ (1.021*testo_tot_ngdL_unadj)-0.178,
                                TRUE ~ testo_tot_ngdL_unadj)) |> 
   var_labels(testo_tot_ngdL = "Testosterone (ng/dL)") |> 
   select(SEQN, year, testo_tot_ngdL)
@@ -332,13 +331,13 @@ df_testo_recodes <- df_testo_adj |>
 ridge_years(id="SEQN", year="year", df=df_testo_recodes)
 
 # #pull in demo data; select adult males
-# demo_male_18 <- import("../demographics/demo_99to17.rds") |> 
+# demo_male_18 <- import("../demographics/demo_clean.rds") |>
 #   filter(gender=="Male" & age_screen_yr >=18) |>
 #   pull(SEQN)
 # 
 # #check distributions looking only at adult males (looks good)
-# ridge_years(id="SEQN", year="year", df=df_testo_adj |>
-#               select(SEQN, year, testo_tot) |> 
+# ridge_years(id="SEQN", year="year", df=df_testo_recodes |>
+#               select(SEQN, year, testo_tot_ngdL) |>
 #               filter(SEQN %in% demo_male_18))
 
 #clean up environment
