@@ -14,21 +14,6 @@ source("../cleaning_packages.R")
 
 lab_codebook <- import("nhanes_lab_codebook.csv")
 
-#=====Define function for unit conversions=====================================
-
-convert_units <- function(df, var_name_old, var_name_new, input_unit, output_unit, drop_after = FALSE) {
-  require(units)
-  converted <- set_units(df[[var_name_old]], input_unit, mode = "standard") |> 
-    set_units(output_unit, mode = "standard")
-  
-  if (drop_after) {
-    converted <- drop_units(converted)
-  }
-  
-  df[[var_name_new]] <- converted
-  return(df)
-}
-
 keep_items <- c(ls(), "keep_items")
 
 #=====Standard biochemistry profile============================================

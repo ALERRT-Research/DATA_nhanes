@@ -1,3 +1,12 @@
+06-13-2024
+Peter T. Tanksley
+
+Message:
+Added total body and region-specific DEXA data from 2011-2017 (n=22K). I also
+updated the convert_units() function to be used within mutate() calls. First
+draft complete and exported.
+
+
 06-07-2024
 Peter T. Tanksley
 
