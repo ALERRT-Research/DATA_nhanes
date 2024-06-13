@@ -114,6 +114,17 @@ barplot_years <- function(id=id, year=year, df=df) {
     facet_wrap(year~vars, scales = "free_x") #year-to-year looks good
 }
 
+#=====Define function for unit conversions=====================================
+
+convert_units <- function(var, input_unit, output_unit, drop_after = TRUE) {
+  require(units)
+  converted <- set_units(var, input_unit, mode = "standard") %>%
+    set_units(output_unit, mode = "standard")
+  if (drop_after) {
+    converted <- drop_units(converted)
+  }
+  return(converted)
+}
 
 #=====Exit message=============================================================
 cat("Make sure to update the log file using {update_log()} after you're done! \n \n")
