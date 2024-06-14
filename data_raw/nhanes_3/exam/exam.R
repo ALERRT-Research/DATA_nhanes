@@ -92,7 +92,7 @@ exam_data_labs <- exam_data |>
 
 #=====Export===================================================================
 
-export(exam_data_labs, "hh_adult_clean.rds")
+export(exam_data_labs, "exam_clean.rds")
 
 
 
