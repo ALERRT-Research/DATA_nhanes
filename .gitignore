@@ -1,11 +1,11 @@
 #file types
-.DS_Store
-.Rproj.user
-.Rproj.user/
-.Rhistory
-.dat
-.sas
-.rds
+*.DS_Store
+*.Rproj.user
+*.Rproj.user/
+*.Rhistory
+*.dat
+*.sas
+*.rds
 
 #specific files
 temp/
