@@ -63,5 +63,17 @@ lab_data_labs <- lab_data |>
 #=====Export===================================================================
 
 export(lab_data_labs, "lab_clean.rds")
+export(var_labels, "lab_codebook.rds")
 
 
+#=====update log file==========================================================
+
+#write update message
+message="
+Saved out codebook. Initial draft complete.
+"
+
+#update log
+update_log(file="log_laboratory.txt",
+           author="Peter T. Tanksley",
+           message = message)

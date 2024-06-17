@@ -56,10 +56,20 @@ hh_adult_data_labs <- hh_adult_data |>
 #=====Export===================================================================
 
 export(hh_adult_data_labs, "hh_adult_clean.rds")
+export(var_labels, "hh_adult_codebook.rds")
 
 
+#=====update log file==========================================================
 
+#write update message
+message="
+Saved out codebook. First draft complete.
+"
 
+#update log
+update_log(file="log_hh_adult.txt",
+           author="Peter T. Tanksley",
+           message = message)
 
 
 

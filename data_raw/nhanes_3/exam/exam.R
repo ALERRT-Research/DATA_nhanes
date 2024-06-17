@@ -93,6 +93,7 @@ exam_data_labs <- exam_data |>
 #=====Export===================================================================
 
 export(exam_data_labs, "exam_clean.rds")
+export(var_labels, "exam_codebook.rds")
 
 
 
@@ -100,7 +101,7 @@ export(exam_data_labs, "exam_clean.rds")
 
 #write update message
 message="
-Added data from NHANES3 exam. Needed to combine ASCII and SAS setup files. 
+Saved out codebook. 
 "
 
 #update log
