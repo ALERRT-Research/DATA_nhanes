@@ -61,7 +61,7 @@ df_sbp_recodes <- df_sbp |>
          bun_mgdL      = LBXSBU, #adjustment needed
          creat_mgdL    = LBXSCR,  #adjustment needed
          sod_mmolL     = LBXSNASI
-         ) |> 
+  ) |> 
   #apply forward deming equations to years prior to 2017
   mutate(chol_tot_mgdL = case_when((year==2017) ~ chol_tot_mgdL,
                                    TRUE         ~ 0.9556*chol_tot_mgdL+2.105),
@@ -300,14 +300,12 @@ years_testo <- c(1999,
 # testo data
 df_testo <- pull_nhanes(names_testo, years_testo)
 
-#convert early years of testo from ng/mL to ng/dL
-df_testo_adj <- convert_units(df_testo, "SSTESTO", "SSTESTO_ngdL", "ng/mL", "ng/dL", drop_after = TRUE)
-
-#combine and apply deming regression equation to pre-2013 data
-df_testo_recodes <- df_testo_adj |> 
+#Adjust units, combine, and apply deming regression equation to pre-2013 data
+df_testo_recodes <- df_testo |>
+  mutate(SSTESTO_ngdL = convert_units("SSTESTO", "ng/mL", "ng/dL")) |> 
   mutate(testo_tot_ngdL_unadj = ifelse(!is.na(SSTESTO_ngdL), SSTESTO_ngdL, LBXTST)) |> 
   mutate(testo_tot_ngdL = case_when((year %in% c(1999, 2001, 2003, 2011)) ~ (1.021*testo_tot_ngdL_unadj)-0.178,
-                               TRUE ~ testo_tot_ngdL_unadj)) |> 
+                                    TRUE ~ testo_tot_ngdL_unadj)) |> 
   var_labels(testo_tot_ngdL = "Testosterone (ng/dL)") |> 
   select(SEQN, year, testo_tot_ngdL)
 
@@ -393,7 +391,8 @@ df_hdl <- pull_nhanes(names_hdl, years_hdl)
 
 #select HDL (Total cholesterol not present in all years)
 df_hdl_recodes <- df_hdl |> 
-  select(SEQN, year, chol_hdl_mmolL=LBDHDDSI)
+  select(SEQN, year, chol_hdl_mmolL=LBDHDDSI) |> 
+  mutate(chol_hdl_mgdL = convert_units(chol_hdl_mmolL, "mmol/L", "mg/dL"))
 
 #check distributions (looks good)
 ridge_years("SEQN", "year", df_hdl_recodes)
@@ -516,6 +515,31 @@ df_ghb_recodes <- df_ghb |>
 keep_items <- c(keep_items, "df_ghb_recodes")
 rm(list = setdiff(ls(), keep_items))
 
+#=====NHANES-III===============================================================
+
+df_nhanes3 <- import("../../data_raw/nhanes_3/laboratory/lab_clean.rds")
+nhanes3_codebook <- import("../../data_raw/nhanes_3/laboratory/lab_codebook.rds")
+
+df_nhanes3_recodes <- df_nhanes3 |> 
+  select(SEQN,
+         apob_mgdL      = ABP,
+         crp_mgdL       = CRP, #convert to HS
+         hba1c_pct      = GHP,
+         chol_hdl_mgdL  = HDP,
+         insulin_uUmL   = I1P,
+         chol_ldl_mgdL  = LCP,
+         trig_mgdL      = TGP,
+         chol_tot_mgdL  = TCP,
+         bup_mgdL       = BUP,
+         creat_mgdL     = CEP,
+         sod_mmolL      = NAPSI) |> 
+  mutate(year = "1988-1994") |> 
+  mutate(crp_mgL = crp_mgdL*10) |> 
+  select(-crp_mgdL)
+
+
+
+
 #=====Combine data=============================================================
 
 df_list <- list(df_apob_recodes, 
@@ -525,7 +549,8 @@ df_list <- list(df_apob_recodes,
                 df_insul_recodes, 
                 df_ldl_recodes, 
                 df_sbp_recodes, 
-                df_testo_recodes)
+                df_testo_recodes,
+                df_nhanes3_recodes)
 
 df_all <- reduce(df_list, full_join)
 
@@ -534,14 +559,16 @@ rm(list = setdiff(ls(), c("df_all", "update_log")))
 
 #save clean dataframe
 export(df_all, "lab_clean.rds")
+df_all <- enframe(get_label(import("lab_clean.rds")))
+
+
 
 #=====update log file==========================================================
 
 #write update message
 message="
-Split out glucose from SBP and added triglycerides to chol-LDL sections.
-This was to keep to the NHANES preferred versions of variables. Also saved out
-an initial completed version of the lab data (12 vars, ~87K cases).
+Added NHANES3 lab data. Could not finish merge and harmonization bc CDC
+website is down (hnanesA package doesn't work). Will attempt another time.
 "
 
 #update log

@@ -125,6 +125,31 @@ demo_labs <- demo_recodes |>
              preg_stat = "Prenancy status",
              military_vet = "Military veteran?")
 
+#=====NHANES-III===============================================================
+
+df_nhanes3_codebook <- import("../../data_raw/nhanes_3/hh_adult/hh_adult_codebook.rds")
+df_nhanes3 <- import("../../data_raw/nhanes_3/hh_adult/hh_adult_clean.rds")
+
+df_nhanes3_recodes <- df_nhanes3 |> 
+  select(SEQN,
+         gender        = HSSEX,
+         race_ethn     = DMARETHN,
+         age_screen_yr = HSAGEIR,
+         age_screen_mo = HSAITMOR,
+         edu_adult     = HFA8R,
+         hh_num        = HSHSIZER,
+         fam_income    = HFF19R,
+         fam_pir       = DMPPIR,
+         # preg
+         military_vet  = HFA13
+         )
+
+
+
+
+
+#=====Export===================================================================
+
 #check number of adults
 demo_labs |> 
   count(adults = age_screen_yr>=18)
@@ -141,8 +166,7 @@ export(demo_labs, "demo_clean.rds")
 
 #write update message
 message="
-Re-ran pipeline using updated pull_nhanes() function to add `year` variables.
-I also added some missing labels.
+Started section for NHANES 3 data. Cannot complete bc CDC website is down.
 "
 
 #update log
