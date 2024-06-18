@@ -3,106 +3,56 @@ source("../cleaning_packages.R")
 
 #=====import data==============================================================
 
-# Define file path
-file_path <- glue("{onedrive_dir_nhanes}/NHANES_Continuous/demographics/demographics_raw.rds")
-
-# Check if the file exists
-if (!file.exists(file_path)) {
-  # Get waves (1999-2017)
-  names_demo <- c("DEMO", paste0("DEMO_", LETTERS[2:10]))
-  years_demo <- seq(1999, 2017, by=2)
-  
-  demo <- pull_nhanes(names_demo, years_demo, mismatch_regex = "DMD.SIZ$|DMDHHSZ.")
-  
-  save_to_onedrive(demo, file_name = "demographics")
-} else {
-  demo <- import(file_path)
-}
-
+demo_nhanesc_raw <- import("../../data_raw/NHANES_C/demographics/demographics_raw.rds")
 
 #=====recode data==============================================================
-demo_recodes <- demo |> 
+
+demo_nhanesc <- demo_nhanesc_raw |> 
   select(SEQN,
          year,
-         "data_release"  = SDDSRVYR,
-         "gender"        = RIAGENDR,
-         "age_screen_yr" = RIDAGEYR,
-         "age_screen_mo" = RIDAGEMN,
-         "age_exm_mo"    = RIDAGEEX,
-         "race_ethn"     = RIDRETH1,
-         "military_vet1" = DMQMILIT,
-         "military_vet2" = DMQMILIZ,
-         "citizen"       = DMDCITZN,
-         "edu_child"     = DMDEDUC3,
-         "edu_adult"     = DMDEDUC2,
-         "hh_num"        = DMDHHSIZ,
-         "hh_income"     = INDHHINC,
-         "fam_income"    = INDFMINC,
-         "fam_pir"       = INDFMPIR,
-         "preg_stat"     = RIDEXPRG) |> 
-  mutate(race_ethn = fct_infreq(race_ethn)) |> 
-  mutate(military_vet = case_when((military_vet1=="Yes") ~ "yes",
-                                  (military_vet2=="Yes") ~ "yes",
-                                  (military_vet1=="No") ~ "no",
-                                  (military_vet2=="No") ~ "no",
+         gender        = RIAGENDR,
+         age_screen_yr = RIDAGEYR,
+         age_screen_mo = RIDAGEMN,
+         race_ethn     = RIDRETH1,
+         marital_stat  = DMDMARTL,
+         military_vet1 = DMQMILIT,
+         military_vet2 = DMQMILIZ,
+         edu_adult     = DMDEDUC2,
+         hh_num        = DMDHHSIZ,
+         fam_income    = INDFMINC,
+         fam_pir       = INDFMPIR) |> 
+  mutate(study = "NHANES Continuous")
+
+demo_nhanesc_recodes <- demo_nhanesc |> 
+  mutate(race_ethn = case_when((race_ethn == "Non-Hispanic White")                       ~ "White",
+                               (race_ethn == "Non-Hispanic Black")                       ~ "Black",
+                               (race_ethn %in% c("Mexican American", "Other Hispanic"))  ~ "Hispanic",
+                               (race_ethn == "Other Race - Including Multi-Racial")      ~ "Other",
+                               TRUE ~ NA_character_),
+         race_ethn = fct_infreq(race_ethn)) |> 
+  mutate(marital_stat = fct_recode(marital_stat,
+                                   NULL = "Refused", 
+                                   NULL = "Don't know", 
+                                   NULL = "Don't Know")) |> 
+  mutate(military_vet = case_when((military_vet1=="Yes") ~ "Yes",
+                                  (military_vet2=="Yes") ~ "Yes",
+                                  (military_vet1=="No") ~ "No",
+                                  (military_vet2=="No") ~ "No",
                                   TRUE ~ NA_character_)) |> 
   select(-c(military_vet1, military_vet2)) |> 
-  mutate(citizen = case_when((citizen == "Citizen by birth or naturalization") ~ "yes",
-                             (citizen == "Not a citizen of the US") ~ "no",
-                             TRUE ~ NA_character_),
-         citizen = fct_infreq(citizen)) |> 
-  mutate(edu_child_full = case_when((edu_child %in% c("Never Attended / Kindergarten Only", "Never attended / kindergarten only")) ~ "never/kindergarden only", 
-                                    (edu_child %in% c("1st Grade",  "1st grade"))  ~ "1st grade", 
-                                    (edu_child %in% c("2nd Grade",  "2nd grade"))  ~ "2nd grade", 
-                                    (edu_child %in% c("3rd Grade",  "3rd grade"))  ~ "3rd grade", 
-                                    (edu_child %in% c("4th Grade",  "4th grade"))  ~ "4th grade", 
-                                    (edu_child %in% c("5th Grade",  "5th grade"))  ~ "5th grade", 
-                                    (edu_child %in% c("6th Grade",  "6th grade"))  ~ "6th grade", 
-                                    (edu_child %in% c("7th Grade",  "7th grade"))  ~ "7th grade", 
-                                    (edu_child %in% c("8th Grade",  "8th grade"))  ~ "8th grade", 
-                                    (edu_child %in% c("9th Grade",  "9th grade"))  ~ "9th grade", 
-                                    (edu_child %in% c("10th Grade", "10th grade")) ~ "10th grade", 
-                                    (edu_child %in% c("11th Grade", "11th grade")) ~ "11th grade", 
-                                    (edu_child %in% c("12th Grade", "12th grade")) ~ "12th grade", 
-                                    (edu_child %in% c("12th Grade, No Diploma", "12th grade, no diploma")) ~ "12th grade, no diploma", 
-                                    (edu_child %in% c("High School Graduate",   "High school graduate"))   ~ "High school graduate", 
-                                    (edu_child %in% c("GED or Equivalent",      "GED or equivalent"))      ~ "GED or equivalent", 
-                                    (edu_child == "More than high school")                                 ~ "More than high school", 
-                                    (edu_child %in% c("Less Than 5th Grade",    "Less than 5th grade"))    ~ "Less than 5th grade", 
-                                    (edu_child %in% c("Less Than 9th Grade",    "Less than 9th grade"))    ~ "Less than 9th grade", 
-                                    TRUE ~ NA_character_)) |> 
-  mutate(edu_child = case_when((edu_child_full ==  "never/kindergarden only") ~ "none", 
-                               (edu_child_full %in% c("1st grade",
-                                                      "2nd grade",
-                                                      "3rd grade",
-                                                      "4th grade",
-                                                      "5th grade",
-                                                      "Less than 5th grade")) ~ "5th grade or less", 
-                               (edu_child_full %in% c("6th grade",
-                                                      "7th grade",
-                                                      "8th grade",
-                                                      "9th grade",
-                                                      "Less than 9th grade")) ~ "6-9th grade", 
-                               (edu_child_full %in% c("10th grade",
-                                                      "11th grade",
-                                                      "12th grade",
-                                                      "12th grade, no diploma")) ~ "10-12th grade", 
-                               (edu_child_full %in% c("High school graduate","GED or equivalent")) ~ "completed high school/GED", 
-                               (edu_child_full == "More than high school") ~ "more than high school", 
-                               TRUE ~ NA_character_),
-         edu_child = fct_relevel(as_factor(edu_child), "none", "5th grade or less","6-9th grade","10-12th grade","completed high school/GED", "more than high school")) |> 
   mutate(edu_adult = case_when((edu_adult %in% c("Less Than 9th Grade", 
                                                  "Less than 9th grade",
                                                  "9-11th Grade (Includes 12th grade with no diploma)", 
                                                  "9-11th grade (Includes 12th grade with no diploma)")) ~ "did not complete HS",
                                (edu_adult %in% c("High School Grad/GED or Equivalent", 
                                                  "High school graduate/GED or equivalent")) ~ "HS graduate/GED or equivalent",
+                               (edu_adult %in% c("Some College or AA degree", 
+                                                 "Some college or AA degree")) ~ "Some college or AA degree",
                                (edu_adult %in% c("College Graduate or above", 
                                                  "College graduate or above")) ~ "College graduate or above",
                                TRUE ~ NA_character_),
-         edu_adult = fct_relevel(as.factor(edu_adult), "did not complete HS", "HS graduate/GED or equivalent", "College graduate or above")) |> 
-  select(-edu_child_full) |> 
-  mutate(hh_num = case_when((hh_num %in% c("7", "7 or more people in the Household")) ~ "7 or more people in the Household",
+         edu_adult = fct_relevel(as.factor(edu_adult), "did not complete HS", "HS graduate/GED or equivalent", "Some college or AA degree", "College graduate or above")) |> 
+  mutate(hh_num = case_when((hh_num %in% c("7", "7 or more people in the Household")) ~ "7 or more",
                             TRUE ~ hh_num),
          hh_num = fct_relevel(as.factor(hh_num), 
                               "1",
@@ -111,116 +61,127 @@ demo_recodes <- demo |>
                               "4",
                               "5",
                               "6",
-                              "7 or more people in the Household")) |> 
-  mutate(across(c(hh_income, fam_income), ~case_when((. %in% c("Over $20,000","Under $20,000","Refused","Don't know")) ~ NA, #dropped bad categories
-                                                     TRUE ~ .))) |> 
-  mutate(preg_stat = case_when((preg_stat == "Yes, positive lab pregnancy test or self-reported pregnant at exam") ~ "yes",
-                               (preg_stat %in% c("SP not pregnant at exam", "The participant was not pregnant at exam")) ~ "no",
-                               (preg_stat %in% c("Cannot ascertain if SP is pregnant at exam", "Cannot ascertain if the participant is pregnant at exam")) ~ "cannot determine",
-                               TRUE ~ NA_character_),
-         preg_stat = fct_infreq(preg_stat)) 
+                              "7 or more")) |> 
+  mutate(fam_income = fct_recode(fam_income,
+                                 NULL = "Over $20,000",
+                                 NULL = "Under $20,000",
+                                 NULL = "Refused",
+                                 NULL = "Don't know"))
 
-demo_labs <- demo_recodes |> 
-  var_labels(citizen = "US citizen",
-             edu_child = "Highest grade (minors only) (harmonized)",
-             edu_adult = "Highest education level (adults)",
-             hh_num = "Number of individuals living in household",
-             preg_stat = "Prenancy status",
-             military_vet = "Military veteran?")
+  
 
 #=====NHANES-III===============================================================
 
-#=====Download Data============================================================
+demo_nhanes3_raw <- import("../../data_raw/NHANES_III/hh_adult/hh_adult_raw.rds")
 
-#get SAS code
-if (!file.exists("hh_adult_sas_setup.sas")) {
-  system("curl https://wwwn.cdc.gov/nchs/data/nhanes3/1a/adult.sas > hh_adult_sas_setup.sas")
-}
-
-#get ASCII data file
-if (!file.exists("hh_adult_ascii.dat")) {
-  system("curl https://wwwn.cdc.gov/nchs/data/nhanes3/1a/adult.dat > hh_adult_ascii.dat")
-}
-
-#=====Import Data==============================================================
-
-# hh_adult_data <- read.SAScii("hh_adult_ascii.dat",
-#                              "hh_adult_sas_setup.sas",
-#                              zipped = F)
-
-#initial run of read.SAScii spotted some issues with the setup file, fixing
-sas_file <- read_lines("hh_adult_sas_setup.sas")
-
-#patterns to replace and their replacements
-patterns <- c('HAZA1CC  $30',
-              'HAZA1CC  3235-3264',
-              'HAZA1CC  = "Med reason BP not taken - other(yrs 5-6)"')
-
-replacements <- c('HAZA1CC $  $30',
-                  'HAZA1CC $  3235-3264',
-                  'HAZA1CC $  = "Med reason BP not taken - other(yrs 5-6)"')
-
-#apply replacements
-for (i in seq_along(patterns)) {
-  sas_file <- gsub(patterns[i], replacements[i], sas_file)
-}
-
-#write the fixed file
-write_lines(sas_file, "hh_adult_sas_setup_fixed.sas")
-
-hh_adult_data <- read.SAScii("hh_adult_ascii.dat",
-                             "hh_adult_sas_setup_fixed.sas",
-                             zipped = F)
-
-#=====Get labels===============================================================
-
-#get data dictionary from SAS files
-var_labels <- read_lines_to_df("hh_adult_sas_setup_fixed.sas",
-                               start_line = 2632,
-                               end_line = 3869)
-
-#add labels
-hh_adult_data_labs <- hh_adult_data |> 
-  set_label(label = var_labels$description)
-
-#=====Export===================================================================
-
-export(hh_adult_data_labs, "hh_adult_clean.rds")
-export(var_labels, "hh_adult_codebook.rds")
-
-
-df_nhanes3_codebook <- import(glue("{onedrive_dir_nhanes}/NHANES_III/hh_adult/hh_adult_codebook.rds"))
-df_nhanes3 <- import("../../data_raw/nhanes_3/hh_adult/hh_adult_clean.rds")
-
-df_nhanes3_recodes <- df_nhanes3 |> 
+demo_nhanes3  <- demo_nhanes3_raw  |> 
   select(SEQN,
          gender        = HSSEX,
          race_ethn     = DMARETHN,
          age_screen_yr = HSAGEIR,
          age_screen_mo = HSAITMOR,
          edu_adult     = HFA8R,
+         marital_stat  = HFA12,
          hh_num        = HSHSIZER,
          fam_income    = HFF19R,
          fam_pir       = DMPPIR,
-         # preg
-         military_vet  = HFA13
-         )
+         military_vet  = HFA13) |> 
+  mutate(study = "NHANES 3")
+
+demo_nhanes3_recodes <- demo_nhanes3 |> 
+  mutate(gender = ifelse(gender==1, "Male", "Female"),
+         gender = fct_infreq(gender)) |> 
+  mutate(race_ethn = case_when((race_ethn==1) ~ "White",
+                               (race_ethn==2) ~ "Black",
+                               (race_ethn==3) ~ "Hispanic",
+                               (race_ethn==4) ~ "Other",
+                               TRUE ~ NA_character_),
+         race_ethn = fct_infreq(race_ethn)) |> 
+  mutate(age_screen_mo = ifelse(age_screen_mo==9999, NA, age_screen_mo)) |> 
+  mutate(edu_adult = case_when((edu_adult<12) ~ "did not complete HS",
+                               (edu_adult==12) ~ "HS graduate/GED or equivalent",
+                               (edu_adult>12 & edu_adult<16) ~ "Some college or AA degree",
+                               (edu_adult>=16) ~ "College graduate or above",
+                               TRUE ~ NA_character_),
+         edu_adult = fct_relevel(as.factor(edu_adult), 
+                                 "did not complete HS", 
+                                 "HS graduate/GED or equivalent", 
+                                 "Some college or AA degree", 
+                                 "College graduate or above")) |> 
+  mutate(marital_stat = case_when((marital_stat==1) ~ "Married",
+                                  (marital_stat==2) ~ "Married (spouse not in home)",
+                                  (marital_stat==3) ~ "Living with partner",
+                                  (marital_stat==4) ~ "Widowed",
+                                  (marital_stat==5) ~ "Divorced",
+                                  (marital_stat==6) ~ "Separated",
+                                  (marital_stat==7) ~ "Never married",
+                                  TRUE ~ NA_character_)) |> 
+  mutate(fam_income = ifelse(fam_income %in% c(88:99), NA, fam_income),
+         fam_income = case_when((fam_income %in% c(0:5))   ~ "$0-4,999",
+                                (fam_income %in% c(6:10))  ~ "$5k-9,999",
+                                (fam_income %in% c(11:15)) ~ "10k-14,999",
+                                (fam_income %in% c(16:20)) ~ "15k-19,999",
+                                (fam_income==21)           ~ "20k-24,999",
+                                (fam_income==22)           ~ "25k-29,999",
+                                (fam_income==23)           ~ "30k-34,999",
+                                (fam_income==24)           ~ "35k-39,999",
+                                (fam_income==25)           ~ "40k-44,999",
+                                (fam_income==26)           ~ "45k-49,999",
+                                (fam_income==27)           ~ "50k and over",
+                                TRUE ~ NA_character_),
+         fam_income = fct_relevel(fam_income, "$0-4,999",
+                                  "$5k-9,999",
+                                  "10k-14,999",
+                                  "15k-19,999",
+                                  "20k-24,999",
+                                  "25k-29,999",
+                                  "30k-34,999",
+                                  "35k-39,999",
+                                  "40k-44,999",
+                                  "45k-49,999",
+                                  "50k and over")) |> 
+  mutate(fam_pir = ifelse(fam_pir==888888, NA, fam_pir)) |> 
+  mutate(military_vet = case_when((military_vet==1) ~ "Yes",
+                                  (military_vet==2) ~ "No",
+                                  TRUE ~ NA_character_)) |> 
+  mutate(hh_num = ifelse(hh_num>=7, "7 or more", hh_num),
+         hh_num = fct_relevel(as.factor(hh_num), 
+                              "1",
+                              "2",
+                              "3",
+                              "4",
+                              "5",
+                              "6",
+                              "7 or more"))
 
 
+#=====Combine, label, export===================================================
 
+demo_all <- bind_rows(demo_nhanesc_recodes, demo_nhanes3_recodes)
 
+demo_all_labs <- demo_all |> 
+  var_labels(gender        = "Gender",
+             age_screen_yr = "Age in years (screener)",
+             age_screen_mo = "Age in months (screener)",
+             race_ethn     = "Race/ethnicity",
+             marital_stat  = "Marital status",
+             edu_adult     = "Educational level",
+             hh_num        = "Number in household",
+             fam_income    = "Family income (not harmonized across studies)",
+             fam_pir       = "Family poverty-income ratio",
+             study         = "NHANES study",
+             military_vet  = "Military veteran")
 
-#=====Export===================================================================
 
 #check number of adults
-demo_labs |> 
+demo_all_labs |> 
   count(adults = age_screen_yr>=18)
 # adults     n
 # FALSE 42112
 #  TRUE 59204
 
 #export data
-export(demo_labs, "demo_clean.rds")
+export(demo_all_labs, "demo_clean.rds")
 
 
 
@@ -228,7 +189,9 @@ export(demo_labs, "demo_clean.rds")
 
 #write update message
 message="
-Started section for NHANES 3 data. Cannot complete bc CDC website is down.
+Reformatted script to pull from data_raw directories. Added NHANES3 data.
+Also dropped several variables. Look for pregnancy indicator in NHANES3 exam 
+data (?).  
 "
 
 #update log

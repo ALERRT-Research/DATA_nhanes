@@ -1,3 +1,12 @@
+06-18-2024
+Peter T. Tanksley
+
+Message:
+Reformatted script to pull from data_raw directories. Added NHANES3 data. Also
+dropped several variables. Look for pregnancy indicator in NHANES3 exam data
+(?).
+
+
 06-17-2024
 Peter T. Tanksley
 
