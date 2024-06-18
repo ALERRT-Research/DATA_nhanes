@@ -1,23 +1,30 @@
 
 source("../cleaning_packages.R")
 
-#retrieve data on demographics 
-# Waves start with no suffix [A] and continue starting with [B,C, ...N] )
+#=====import data==============================================================
 
-#Get waves (1999-2017)
-names_demo <- c("DEMO", paste0("DEMO_", LETTERS[2:10]))
+# Define file path
+file_path <- glue("{onedrive_dir_nhanes}/NHANES_Continuous/demographics/demographics_raw.rds")
 
-years_demo <- seq(1999, 2017, by=2)
+# Check if the file exists
+if (!file.exists(file_path)) {
+  # Get waves (1999-2017)
+  names_demo <- c("DEMO", paste0("DEMO_", LETTERS[2:10]))
+  years_demo <- seq(1999, 2017, by=2)
+  
+  demo <- pull_nhanes(names_demo, years_demo, mismatch_regex = "DMD.SIZ$|DMDHHSZ.")
+  
+  save_to_onedrive(demo, file_name = "demographics")
+} else {
+  demo <- import(file_path)
+}
 
-demo <- pull_nhanes(names_demo, years_demo, mismatch_regex = "DMD.*SIZ$|DMDHHSZ.*")
 
-#bind all waves
+#=====recode data==============================================================
 demo_recodes <- demo |> 
   select(SEQN,
          year,
          "data_release"  = SDDSRVYR,
-         "int_exm_stat"  = RIDSTATR,
-         "period_6mo"    = RIDEXMON,
          "gender"        = RIAGENDR,
          "age_screen_yr" = RIDAGEYR,
          "age_screen_mo" = RIDAGEMN,
@@ -33,10 +40,6 @@ demo_recodes <- demo |>
          "fam_income"    = INDFMINC,
          "fam_pir"       = INDFMPIR,
          "preg_stat"     = RIDEXPRG) |> 
-  mutate(int_exm_stat = case_when((int_exm_stat %in% c("Interviewed Only", "Interviewed only")) ~ "Interviewed only",
-                                  (int_exm_stat %in% c("Both Interviewed and MEC examined", "Both interviewed and MEC examined")) ~ "Both interviewed and MEC examined",
-                                  TRUE ~ NA_character_),
-         int_exm_stat = as_factor(int_exm_stat)) |> 
   mutate(race_ethn = fct_infreq(race_ethn)) |> 
   mutate(military_vet = case_when((military_vet1=="Yes") ~ "yes",
                                   (military_vet2=="Yes") ~ "yes",
@@ -98,6 +101,7 @@ demo_recodes <- demo |>
                                                  "College graduate or above")) ~ "College graduate or above",
                                TRUE ~ NA_character_),
          edu_adult = fct_relevel(as.factor(edu_adult), "did not complete HS", "HS graduate/GED or equivalent", "College graduate or above")) |> 
+  select(-edu_child_full) |> 
   mutate(hh_num = case_when((hh_num %in% c("7", "7 or more people in the Household")) ~ "7 or more people in the Household",
                             TRUE ~ hh_num),
          hh_num = fct_relevel(as.factor(hh_num), 
@@ -118,8 +122,7 @@ demo_recodes <- demo |>
 
 demo_labs <- demo_recodes |> 
   var_labels(citizen = "US citizen",
-             edu_child = "Highest grade (minors only) (harmonized, use this)",
-             edu_child_full = "Highest grade (minors only) (not harmonized)",
+             edu_child = "Highest grade (minors only) (harmonized)",
              edu_adult = "Highest education level (adults)",
              hh_num = "Number of individuals living in household",
              preg_stat = "Prenancy status",
@@ -127,7 +130,66 @@ demo_labs <- demo_recodes |>
 
 #=====NHANES-III===============================================================
 
-df_nhanes3_codebook <- import("../../data_raw/nhanes_3/hh_adult/hh_adult_codebook.rds")
+#=====Download Data============================================================
+
+#get SAS code
+if (!file.exists("hh_adult_sas_setup.sas")) {
+  system("curl https://wwwn.cdc.gov/nchs/data/nhanes3/1a/adult.sas > hh_adult_sas_setup.sas")
+}
+
+#get ASCII data file
+if (!file.exists("hh_adult_ascii.dat")) {
+  system("curl https://wwwn.cdc.gov/nchs/data/nhanes3/1a/adult.dat > hh_adult_ascii.dat")
+}
+
+#=====Import Data==============================================================
+
+# hh_adult_data <- read.SAScii("hh_adult_ascii.dat",
+#                              "hh_adult_sas_setup.sas",
+#                              zipped = F)
+
+#initial run of read.SAScii spotted some issues with the setup file, fixing
+sas_file <- read_lines("hh_adult_sas_setup.sas")
+
+#patterns to replace and their replacements
+patterns <- c('HAZA1CC  $30',
+              'HAZA1CC  3235-3264',
+              'HAZA1CC  = "Med reason BP not taken - other(yrs 5-6)"')
+
+replacements <- c('HAZA1CC $  $30',
+                  'HAZA1CC $  3235-3264',
+                  'HAZA1CC $  = "Med reason BP not taken - other(yrs 5-6)"')
+
+#apply replacements
+for (i in seq_along(patterns)) {
+  sas_file <- gsub(patterns[i], replacements[i], sas_file)
+}
+
+#write the fixed file
+write_lines(sas_file, "hh_adult_sas_setup_fixed.sas")
+
+hh_adult_data <- read.SAScii("hh_adult_ascii.dat",
+                             "hh_adult_sas_setup_fixed.sas",
+                             zipped = F)
+
+#=====Get labels===============================================================
+
+#get data dictionary from SAS files
+var_labels <- read_lines_to_df("hh_adult_sas_setup_fixed.sas",
+                               start_line = 2632,
+                               end_line = 3869)
+
+#add labels
+hh_adult_data_labs <- hh_adult_data |> 
+  set_label(label = var_labels$description)
+
+#=====Export===================================================================
+
+export(hh_adult_data_labs, "hh_adult_clean.rds")
+export(var_labels, "hh_adult_codebook.rds")
+
+
+df_nhanes3_codebook <- import(glue("{onedrive_dir_nhanes}/NHANES_III/hh_adult/hh_adult_codebook.rds"))
 df_nhanes3 <- import("../../data_raw/nhanes_3/hh_adult/hh_adult_clean.rds")
 
 df_nhanes3_recodes <- df_nhanes3 |> 

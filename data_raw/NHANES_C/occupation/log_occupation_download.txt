@@ -1,0 +1,15 @@
+06-18-2024
+Peter T. Tanksley
+
+Message:
+Downloaded occupation data from NHANES. Renamed vars to keep complex merges
+simpler.
+
+
+06-18-2024
+Peter T. Tanksley
+
+Message:
+Initiate Log.
+
+

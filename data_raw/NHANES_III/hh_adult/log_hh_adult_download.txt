@@ -1,11 +1,11 @@
-06-17-2024
+06-18-2024
 Peter T. Tanksley
 
 Message:
-Saved out codebook. Initial draft complete.
+Download raw NHANES3 data.
 
 
-06-17-2024
+06-18-2024
 Peter T. Tanksley
 
 Message:
