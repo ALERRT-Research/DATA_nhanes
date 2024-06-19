@@ -1,5 +1,9 @@
 source("../cleaning_packages.R")
 
+#get codebook
+system("curl https://wwwn.cdc.gov/nchs/data/nhanes3/1a/exam-acc.pdf > exam_nhanes3_codebook.pdf")
+
+
 if(!file.exists("exam_raw.rds")){
   
   #=====Download Data============================================================

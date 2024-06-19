@@ -1,5 +1,8 @@
 source("../cleaning_packages.R")
 
+#get codebook
+system("curl https://wwwn.cdc.gov/nchs/data/nhanes3/1a/lab-acc.pdf > lab_codebook.pdf")
+
 if(!file.exists("laboratory_raw.rds")){
   
   #=====Download Data============================================================

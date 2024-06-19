@@ -1,5 +1,8 @@
 source("../cleaning_packages.R")
 
+#get codebook
+system("curl https://wwwn.cdc.gov/nchs/data/nhanes3/1a/ADULT-acc.pdf > hh_adult_codebook.pdf")
+
 if(!file.exists("hh_adult_raw.rds")){
   
   #=====Download Data============================================================
