@@ -128,58 +128,42 @@ convert_units <- function(var, input_unit, output_unit, drop_after = TRUE) {
   return(converted)
 }
 
-#=====Define function to save to OneDrive======================================
-
-
-save_to_onedrive <- function(object, path_name = "~/OneDrive - Texas State University/Non_work_work/Datasets/NHANES", file_name, extension = ".rds") {
-  # Load necessary library
-  library(glue)
-  
-  # Expand the path name to its full form
-  path_name <- path.expand(path_name)
-  
-  # Check if the specified path exists
-  if (!dir.exists(path_name)) {
-    stop("Error! OneDrive directory does not exist. Confirm you have the correct pathname.")
-  }
-  
-  # Construct the directory path
-  dir_path <- file.path(path_name, file_name)
-  
-  # Create the directory if it doesn't exist
-  if (!dir.exists(dir_path)) {
-    dir.create(dir_path, recursive = TRUE)
-  }
-  
-  # Construct the file path with the specified extension
-  file_path <- file.path(dir_path, paste0(file_name, "_raw", extension))
-  
-  # Save the object to the specified file
-  saveRDS(object, file_path)
-}
-
-# Example usage
-# save_to_onedrive(demo, file_name = "demographics")
-
-#=====Define NHANES Location=============================================================
-
-onedrive_dir_nhanes <- "~/OneDrive - Texas State University/Non_work_work/Datasets/NHANES"
-
 #=====Exit message=============================================================
-cat("Make sure to update the log file using {update_log()} after you're done! \n \n")
-cat('EXAMPLE:
+
+cat("
+#===========================================================================
+     NOTE #1
+#===========================================================================
+
+Make sure to add new 'study_id' variable when combining NHANES3 and
+Continuous versions (SEQN is NOT unique across studies).  
+EXAMPLE:
+    
+df |> 
+mutate(study_id = case_when(
+  (study=='NHANES 3') ~ paste0('3', str_pad(SEQN, width=6, side='left', pad='0')),
+  (study!='NHANES 3') ~ paste0('4', str_pad(SEQN, width=6, side='left', pad='0'))
+  )
+)
+    
+#===========================================================================
+     NOTE #2
+#===========================================================================
+
+Make sure to update the log file using {update_log()} after you're done!  
+EXAMPLE:
 
 #=====update log file==========================================================
 
 #write update message
-message="
+message='
 (list of changes made)
-"
+'
 
 #update log
-update_log(file="log_[filename].txt",
-           author="[name]",
-           message = message)')
+update_log(file='log_[filename].txt',
+           author='[name]',
+           message = message)")
 
 
 
