@@ -1,3 +1,10 @@
+06-19-2024
+Peter T. Tanksley
+
+Message:
+Added new study_id variable (SEQN is NOT unique across studies).
+
+
 06-18-2024
 Peter T. Tanksley
 

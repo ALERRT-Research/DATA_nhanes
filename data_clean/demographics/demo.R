@@ -172,16 +172,24 @@ demo_all_labs <- demo_all |>
              study         = "NHANES study",
              military_vet  = "Military veteran")
 
+#create unique, seven digit IDs that incorporate study of origin 
+#NHANES3 start with "3"
+#NHANESC starts with "4" 
+
+demo_all_id <- demo_all_labs |> 
+  mutate(study_id = case_when((study=="NHANES 3") ~ paste0("3", str_pad(SEQN, width=6, side="left", pad="0")),
+                              (study!="NHANES 3") ~ paste0("4", str_pad(SEQN, width=6, side="left", pad="0")))) |> 
+  select(study_id, SEQN, year, everything())
 
 #check number of adults
-demo_all_labs |> 
+demo_all_id |> 
   count(adults = age_screen_yr>=18)
-# adults     n
-# FALSE 42112
-#  TRUE 59204
+#   adults     n
+# 1  FALSE 42544
+# 2   TRUE 78822
 
 #export data
-export(demo_all_labs, "demo_clean.rds")
+export(demo_all_id, "demo_clean.rds")
 
 
 
@@ -189,9 +197,7 @@ export(demo_all_labs, "demo_clean.rds")
 
 #write update message
 message="
-Reformatted script to pull from data_raw directories. Added NHANES3 data.
-Also dropped several variables. Look for pregnancy indicator in NHANES3 exam 
-data (?).  
+Added new study_id variable (SEQN is NOT unique across studies). 
 "
 
 #update log
