@@ -1,3 +1,10 @@
+06-19-2024
+Peter T. Tanksley
+
+Message:
+Added NHANES 3 data. Need to find FEV and WHR for NHANESC.
+
+
 06-06-2024
 Peter T. Tanksley
 
