@@ -3,6 +3,7 @@ p_load(rio,
        tidyverse,
        tidylog,
        ###
+       httr,
        nhanesA,
        rvest,
        SAScii,
@@ -69,6 +70,25 @@ update_log <- function(file, author, message) {
     write(paste(sysdate, author, "",  "Message:", wrapped_message, "","", sep = "\n"), file)
   }
 }
+
+#download NHANES table
+nhanes_table <- function(url) {
+  #required packages
+  require(rvest)
+  require(httr)
+  # Fetch the webpage content
+  page <- httr::GET(url)
+  
+  # Parse the content
+  content <- content(page, as = "text")
+  parsed_page <- read_html(content)
+  
+  # Extract the table
+  table <- html_table(parsed_page, fill = TRUE)[[1]]
+  
+  return(table)
+}
+
 
 #=====Exit message=============================================================
 cat("Make sure to update the log file using {update_log()} after you're done! \n \n")

@@ -1,5 +1,13 @@
 source("../cleaning_packages.R")
 
+#get codebook for all exam years
+if(!file.exists("exam_codebook.csv")) {
+  exam_codebook <- nhanes_table("https://wwwn.cdc.gov/nchs/nhanes/search/variablelist.aspx?Component=Examination&Cycle=")
+  export(exam_codebook, "exam_codebook.csv")
+} else {
+  exam_codebook <- import("exam_codebook.csv")
+}
+
 if(!file.exists("exam_raw.rds")) {
   
   #=====blood pressure=(READY)===================================================
@@ -97,13 +105,32 @@ if(!file.exists("exam_raw.rds")) {
   #vo2 data
   df_vo2 <- pull_nhanes(names_vo2, years_vo2)
   
+  #=====Spirometry=()===========================================================
+  
+  # 2007="SPX_E",
+  # 2009="SPX_F",
+  # 2011="SPX_G",
+  
+  #set names
+  names_spir <- c("SPX_E",
+                  "SPX_F",
+                  "SPX_G")
+  
+  #set years
+  years_spir <- seq(2007, 2011, 2)
+  
+  #bmi data
+  df_spir <- pull_nhanes(names_spir, years_spir, "SPQ070B")
+  
+  
   #=====Combine data=============================================================
   
   df_list <- list(df_bmi,
                   df_bp,
                   df_grip,
-                  df_vo2
-                  )
+                  df_vo2,
+                  df_spir
+  )
   
   df_all <- reduce(df_list, full_join)
   
@@ -116,7 +143,7 @@ if(!file.exists("exam_raw.rds")) {
 
 #write update message
 message="
-Downloaded raw NHANES Coninuous data.
+Added spirometry data. Looking to add FEV and FVC.
 "
 
 #update log

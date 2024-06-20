@@ -1,3 +1,17 @@
+06-20-2024
+Peter T. Tanksley
+
+Message:
+Added spirometry data. Looking to add FEV and FVC.
+
+
+06-20-2024
+Peter T. Tanksley
+
+Message:
+Added codebook from NHANES website.
+
+
 06-18-2024
 Peter T. Tanksley
 
