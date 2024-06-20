@@ -1,6 +1,14 @@
 
 source("../cleaning_packages.R")
 
+#get codebook for all exam years
+if(!file.exists("lab_codebook.csv")) {
+  lab_codebook <- nhanes_table("https://wwwn.cdc.gov/nchs/nhanes/search/variablelist.aspx?Component=Laboratory&Cycle=")
+  export(exam_codebook, "lab_codebook.csv")
+} else {
+  lab_codebook <- import("lab_codebook.csv")
+}
+
 if(!file.exists("laboratory_raw.rds")) {
   
   #=====Standard biochemistry profile= (READY)=================================
@@ -38,7 +46,8 @@ if(!file.exists("laboratory_raw.rds")) {
            year,
            LBXSCH, 
            LBXSBU, 
-           LBXSCR,  
+           LBXSCR, 
+           LBDSCR,
            LBXSNASI)
   
   #=====Glucose=(READY)==========================================================
@@ -253,7 +262,7 @@ if(!file.exists("laboratory_raw.rds")) {
   df_hdl_select <- df_hdl |> 
     select(SEQN,
            year,
-           LBDHDDSI)
+           LBDHDD)
   
   #=====Cholesterol=LDL=(READY)=Triglyceride=(READY)=============================
   
@@ -359,14 +368,16 @@ if(!file.exists("laboratory_raw.rds")) {
   
   #=====Combine data=============================================================
   
-  df_list <- list(df_apob_select,
+  df_list <- list(df_sbp_select,
+                  df_glu_select,
                   df_crp_select,
-                  df_ghb_select,
-                  df_hdl_select,
                   df_insul_select,
+                  df_testo_select,
+                  df_apob_select,
+                  df_hdl_select,
                   df_ldl_select,
-                  df_sbp_select,
-                  df_testo_select
+                  # df_cbc_select,
+                  df_ghb_select
   )
   
   df_all <- reduce(df_list, full_join)
@@ -380,9 +391,7 @@ if(!file.exists("laboratory_raw.rds")) {
 
 #write update message
 message="
-Set up download. Selected only needed vars to avoid merge issues (vars appear
-in multiple datasets, some are preferred, some are not, but not all are 
-identical).
+Swapped out the SI version of HDL cholesterol for metric.
 "
 
 #update log
