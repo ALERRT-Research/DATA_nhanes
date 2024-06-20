@@ -25,13 +25,22 @@ exam_nhanesc <- exam_nhanesc_raw |>
          weight_kg           = BMXWT,
          bmi_kgm2            = BMXBMI, 
          waist_cm            = BMXWAIST,
+         hip_cm              = BMXHIP,
          #VO2
          exam_min            = CVDEXLEN,
          hr_peak_bpm         = CVDPMHR,
          par_code            = CVXPARC,
          vo2max_pred_mlkgmin = CVDVOMAX,
          vo2max_est_mlkgmin  = CVDESVO2,
-         fit_lvl             = CVDFITLV)
+         fit_lvl             = CVDFITLV,
+         #Spirometry
+         fev_ml05            = SPXBFEV5,
+         fev_ml1             = SPXBFEV1,
+         fev_ml3             = SPXBFEV3,
+         fev_ml6             = SPXBFEV6,
+         fev_ml_peak         = SPXBPEF,
+         fvc_ml_max          = SPXBFVC
+         )
 
 #recode
 exam_nhanesc_recodes <- exam_nhanesc |> 
@@ -48,6 +57,7 @@ exam_nhanesc_recodes <- exam_nhanesc |>
                                          bp_dia_4), na.rm = TRUE))) |>
   ungroup() |>
   select(-matches(".*_[1-4]$")) |> 
+  mutate(whr = waist_cm/hip_cm) |> 
   mutate(study = "NHANES Continuous")
 
 #=====NHANES 3=================================================================
@@ -67,11 +77,16 @@ exam_nhanes3 <- exam_nhanes3_raw |>
          weight_kg       = BMPWT,
          bmi_kgm2        = BMPBMI,
          waist_cm        = BMPWAIST,
+         hip_cm          = BMPBUTTO,
          whr             = BMPWHR,
          #VO2
-         #FEV
-         fev_ml5sec      = SPPFEV05,
-         fvc_ml          = SPPFVC
+         #Spirometry
+         fev_ml05        = SPPFEV05,
+         fev_ml1         = SPPFEV1,
+         fev_ml3         = SPPFEV3,
+         fev_ml6         = SPPFEV6,
+         fev_ml_peak     = SPPPEAK,
+         fvc_ml_max      = SPPFVC
          )
 
 exam_nhanes3_recodes <- exam_nhanes3 |> 
@@ -82,13 +97,35 @@ exam_nhanes3_recodes <- exam_nhanes3 |>
 
 exam_all <- bind_rows(exam_nhanesc_recodes, exam_nhanes3_recodes)
 
-#add unite
+#add unique IDs and label
 exam_all_id <- exam_all |> 
   mutate(study_id = case_when(
     (study=='NHANES 3') ~ paste0('3', str_pad(SEQN, width=6, side='left', pad='0')),
     (study!='NHANES 3') ~ paste0('4', str_pad(SEQN, width=6, side='left', pad='0')))) |> 
-  select(study_id, SEQN, year, everything())
-
+  select(study_id, SEQN, year, everything()) |> 
+  var_labels(study_id            = "unique ID for combined NH3 and NHC studies",
+             pulse_60sec         = "60 sec pulse",
+             grip_combo_kg       = "grip strength combined R/L (kg)", 
+             height_cm           = "height (cm)", 
+             weight_kg           = "weight (kg)", 
+             bmi_kgm2            = "body mass index (kg/m^2)",
+             waist_cm            = "waist circumference (cm)", 
+             exam_min            = "cardiovascular fitness exam time (min)", 
+             hr_peak_bpm         = "peak heart rate (bpm)", 
+             par_code            = "physical activity readiness code",
+             vo2max_pred_mlkgmin = "vo2max predicted (ml/kg/min) (PAR, age, BMI, sex)", 
+             vo2max_est_mlkgmin  = "vo2max estimated (ml/kg/min)", 
+             fit_lvl             = "cardiovascular fitness level (sex-specific)", 
+             fev_ml05            = "forced expiratory volume (ml/.05sec)",
+             fev_ml1             = "forced expiratory volume (ml/1sec)", 
+             fev_ml3             = "forced expiratory volume (ml/3sec)", 
+             fev_ml6             = "forced expiratory volume (ml/6sec)", 
+             fev_ml_peak         = "forced expiratory volume (ml)",
+             fvc_ml_max          = "forced vital capacity (max)", 
+             bp_sys_avg_mmHg     = "systolic blood pressure (avg.) (mmHg)", 
+             bp_dia_avg_mmHg     = "diastolic blood pressure (avg.) (mmHg)", 
+             study               = "NHANES study (III or continuous)",
+             whr                 = "waist-hip ratio")
 
 
 
@@ -102,7 +139,7 @@ export(exam_all_id, "exam_clean.rds")
 
 #write update message
 message="
-Added NHANES 3 data. Need to find FEV and WHR for NHANESC. 
+Added spirometry measures and WHR for NHC.
 "
 
 #update log

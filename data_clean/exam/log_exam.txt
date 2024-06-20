@@ -1,3 +1,10 @@
+06-20-2024
+Peter T. Tanksley
+
+Message:
+Added spirometry measures and WHR for NHC.
+
+
 06-19-2024
 Peter T. Tanksley
 
