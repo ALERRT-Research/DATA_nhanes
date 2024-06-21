@@ -5,7 +5,9 @@ p_load(rio,
        tidyverse,
        tidylog,
        ###
+       glue,
        haven,
+       httr,
        janitor,
        SAScii,
        sjlabelled)
@@ -60,10 +62,36 @@ update_log <- function(file, author, message) {
   }
 }
 
+# #download NHANES (or NHIS) mortality data from ftp website
+# get_nhanes_mort <- function(start_yr){
+#   stem <- "https://ftp.cdc.gov/pub/Health_Statistics/NCHS/datalinkage/linked_mortality"
+#   dest <- glue("NHANES_{start_yr}_{start_yr+1}_MORT_2019_PUBLIC.dat")
+#   system(glue("curl {stem}/NHANES_{start_yr}_{start_yr+1}_MORT_2019_PUBLIC.dat > {dest}"))
+# }
+
+#process NHANES ASCII files (from widths from NHANES website)
+read_nhanes_mort <- function(data_file) {
+  read_fwf(
+    file = data_file,
+    col_types = "iiiiiiii",
+    fwf_cols(
+      SEQN = c(1, 6),
+      eligstat = c(15, 15),
+      mortstat = c(16, 16),
+      ucod_leading = c(17, 19),
+      diabetes = c(20, 20),
+      hyperten = c(21, 21),
+      permth_int = c(43, 45),
+      permth_exm = c(46, 48)
+    ),
+    na = c("", ".")
+  )
+}
 
 #=====Exit message=============================================================
-cat("Make sure to update the log file using {update_log()} after you're done! \n \n")
-cat('EXAMPLE:
+cat('
+Make sure to update the log file using {update_log()} after you are done! \n \n
+EXAMPLE:
 
 #=====update log file==========================================================
 

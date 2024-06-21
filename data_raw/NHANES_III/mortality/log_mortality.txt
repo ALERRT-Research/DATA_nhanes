@@ -1,0 +1,14 @@
+06-21-2024
+Peter T. Tanksley
+
+Message:
+Added raw mortality data from NHANES3.
+
+
+06-21-2024
+Peter T. Tanksley
+
+Message:
+Initiate log.
+
+
