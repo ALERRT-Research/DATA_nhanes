@@ -1,3 +1,10 @@
+06-24-2024
+Peter T. Tanklsey
+
+Message:
+Added checksum procedure for combined laboratory data.
+
+
 06-20-2024
 Peter T. Tanklsey
 
