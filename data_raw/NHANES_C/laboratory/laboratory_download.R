@@ -9,7 +9,11 @@ if(!file.exists("lab_codebook.csv")) {
   lab_codebook <- import("lab_codebook.csv")
 }
 
-if(!file.exists("laboratory_raw.rds")) {
+#check checksums
+checksum_result <- check_md5_file("laboratory_raw.rds")
+
+
+if(!file.exists("laboratory_raw.rds") || !checksum_result) {
   
   #=====Standard biochemistry profile= (READY)=================================
   
@@ -385,13 +389,15 @@ if(!file.exists("laboratory_raw.rds")) {
   #save clean dataframe
   export(df_all, "laboratory_raw.rds")
   
+  #create checksum file
+  create_md5_file("laboratory_raw.rds")
 }
 
 #=====update log file==========================================================
 
 #write update message
 message="
-Swapped out the SI version of HDL cholesterol for metric.
+Added checksum procedure to NHC laboratory data
 "
 
 #update log
