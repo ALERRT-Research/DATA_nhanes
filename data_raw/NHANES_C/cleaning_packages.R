@@ -3,6 +3,7 @@ p_load(rio,
        tidyverse,
        tidylog,
        ###
+       digest,
        glue,
        httr,
        nhanesA,
@@ -116,11 +117,40 @@ read_nhanes_mort <- function(data_file) {
   )
 }
 
+#add MD5 checksums to a local file 
+create_md5_file <- function(file_in, file_out="md5.txt"){
+  require(glue)
+  system(glue("md5 -q {file_in} | awk '{{print $0, \"{file_in}\"}}' > {file_out}"))
+}
+
+
+#check if checksums match up
+check_md5_file <- function(file_in, md5_file="md5.txt") {
+  require(glue)
+  
+  # Read the stored MD5 hash
+  stored_hash <- readLines(md5_file)
+  
+  # Extract the hash and filename from the stored hash
+  stored_md5 <- sub(" .*", "", stored_hash)
+  stored_filename <- sub(".* ", "", stored_hash)
+  
+  # Calculate the MD5 hash of the new file
+  new_md5 <- system(glue("md5 -q {file_in}"), intern = TRUE)
+  
+  # Check if the filenames match and the hashes match
+  if (file_in == stored_filename && new_md5 == stored_md5) {
+    return(TRUE)
+  } else {
+    return(FALSE)
+  }
+}
 
 
 #=====Exit message=============================================================
-cat("Make sure to update the log file using {update_log()} after you're done! \n \n")
-cat('EXAMPLE:
+cat('
+Make sure to update the log file using {update_log()} after you are done! \n \n
+EXAMPLE:
 
 #=====update log file==========================================================
 
