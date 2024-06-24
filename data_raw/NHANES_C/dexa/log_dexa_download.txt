@@ -1,3 +1,10 @@
+06-24-2024
+Peter T. Tanksley
+
+Message:
+Added checksum procedure to NHC DEXA data.
+
+
 06-18-2024
 Peter T. Tanksley
 

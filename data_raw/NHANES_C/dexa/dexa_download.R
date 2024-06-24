@@ -1,6 +1,9 @@
 source("../cleaning_packages.R")
 
-if(!file.exists("dexa_raw.rds")){
+#check checksums
+checksum_result <- check_md5_file("dexa_raw.rds")
+
+if(!file.exists("dexa_raw.rds") || !checksum_result){
   
   #=====DEXA-Full body=(READY)===================================================
   
@@ -80,13 +83,14 @@ if(!file.exists("dexa_raw.rds")){
     full_join(df_dexa_ag_recodes, by=c("SEQN", "year"))
   
   export(df_dexa_all, "dexa_raw.rds")
+  create_md5_file("dexa_raw.rds")
 }
 
 #=====update log file==========================================================
 
 #write update message
 message="
-Downloaded raw NHANES data.
+Added checksum procedure to NHC DEXA data.
 "
 
 #update log
