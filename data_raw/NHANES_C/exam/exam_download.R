@@ -8,7 +8,11 @@ if(!file.exists("exam_codebook.csv")) {
   exam_codebook <- import("exam_codebook.csv")
 }
 
-if(!file.exists("exam_raw.rds")) {
+#conduct checksum check
+checksum_result <- check_md5_file("exam_raw.rds")
+
+
+if(!file.exists("exam_raw.rds") || !checksum_result) {
   
   #=====blood pressure=(READY)===================================================
   
@@ -137,13 +141,21 @@ if(!file.exists("exam_raw.rds")) {
   #save clean dataframe
   export(df_all, "exam_raw.rds")
   
+  #add checksum file 
+  create_md5_file("exam_raw.rds")
+    
 }
+
+
+
+
+
 
 #=====update log file==========================================================
 
 #write update message
 message="
-Added spirometry data. Looking to add FEV and FVC.
+Added conditional based on the matching of MD5 checksums.
 "
 
 #update log

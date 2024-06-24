@@ -1,3 +1,10 @@
+06-24-2024
+Peter T. Tanksley
+
+Message:
+Added conditional based on the matching of MD5 checksums.
+
+
 06-20-2024
 Peter T. Tanksley
 
