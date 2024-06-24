@@ -1,6 +1,10 @@
 source("../cleaning_packages.R")
 
-if(!file.exists("occupation_raw.rds")) {
+#check checksums
+checksum_result <- check_md5_file("occupation_raw.rds")
+
+
+if(!file.exists("occupation_raw.rds") || !checksum_result) {
   
   
   #--------OCUPATIONAL CODES SWITCH ACROSS YEARS, CONFIRM CODING
@@ -122,16 +126,18 @@ if(!file.exists("occupation_raw.rds")) {
   
   #=====Export=================================================================
   
+  #export
   export(df_ocq_recodes, "occupation_raw.rds")
   
+  #create checksum file
+  create_md5_file("occupation_raw.rds")
 }
 
 #=====update log file==========================================================
 
 #write update message
 message="
-Downloaded occupation data from NHANES. Renamed vars to keep complex merges
-simpler.
+Added checksum procedure for NHC occupation data.
 "
 
 #update log
