@@ -2,6 +2,13 @@
 Peter T. Tanksley
 
 Message:
+Added checksum procedure for combined mortality data.
+
+
+06-24-2024
+Peter T. Tanksley
+
+Message:
 Completed first pass of combined mortality data for NH3 and NHC.
 
 
