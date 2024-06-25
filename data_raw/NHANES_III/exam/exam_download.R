@@ -5,7 +5,10 @@ if(!file.exists("exam_nhanes3_codebook.pdf")){
   system("curl https://wwwn.cdc.gov/nchs/data/nhanes3/1a/exam-acc.pdf > exam_nhanes3_codebook.pdf")
 }
 
-if(!file.exists("exam_raw.rds")){
+#check checksums
+checksum_result <- check_md5_file("exam_raw.rds")
+
+if(!file.exists("exam_raw.rds") || !checksum_result){
   
   #=====Download Data============================================================
   
@@ -97,21 +100,23 @@ if(!file.exists("exam_raw.rds")){
   exam_data_labs <- exam_data |> 
     set_label(label = var_labels$description)
   
-  #=====Export===================================================================
-  
+#export  
   export(exam_data_labs, "exam_raw.rds")
+  
+  #create checksum file
+  create_md5_file("exam_raw.rds")
   
 }
 
 
-#=====update log file==========================================================
-
-#write update message
-message="
-Downloaded raw NHANES3 data.
-"
-
-#update log
-update_log(file="log_exam_download.txt",
-           author="Peter T. Tanksley",
-           message = message)
+# #=====update log file==========================================================
+# 
+# #write update message
+# message="
+# Added checksum procedure.
+# "
+# 
+# #update log
+# update_log(file="log_exam_download.txt",
+#            author="Peter T. Tanksley",
+#            message = message)

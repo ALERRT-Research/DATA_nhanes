@@ -86,18 +86,18 @@ if(!file.exists("dexa_raw.rds") || !checksum_result){
   create_md5_file("dexa_raw.rds")
 }
 
-#=====update log file==========================================================
-
-#write update message
-message="
-Added checksum procedure to NHC DEXA data.
-"
-
-#update log
-update_log(file="log_DEXA_download.txt",
-           author="Peter T. Tanksley",
-           message = message)
-
-
-
-
+# #=====update log file==========================================================
+# 
+# #write update message
+# message="
+# Added checksum procedure to NHC DEXA data.
+# "
+# 
+# #update log
+# update_log(file="log_DEXA_download.txt",
+#            author="Peter T. Tanksley",
+#            message = message)
+# 
+# 
+# 
+# 

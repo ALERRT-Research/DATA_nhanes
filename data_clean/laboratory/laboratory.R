@@ -214,15 +214,15 @@ if(!file.exists("laboratory_clean.rds") || !checksum_result){
   
 }
 
-#=====update log file==========================================================
-
-#write update message
-message="
-Added checksum procedure for combined laboratory data.
-"
-
-#update log
-update_log(file="log_laboratory.txt",
-           author="Peter T. Tanklsey",
-           message = message)
-
+# #=====update log file==========================================================
+# 
+# #write update message
+# message="
+# Added checksum procedure for combined laboratory data.
+# "
+# 
+# #update log
+# update_log(file="log_laboratory.txt",
+#            author="Peter T. Tanklsey",
+#            message = message)
+# 

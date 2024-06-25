@@ -133,16 +133,16 @@ if(!file.exists("occupation_raw.rds") || !checksum_result) {
   create_md5_file("occupation_raw.rds")
 }
 
-#=====update log file==========================================================
-
-#write update message
-message="
-Added checksum procedure for NHC occupation data.
-"
-
-#update log
-update_log(file="log_occupation_download.txt",
-           author="Peter T. Tanksley",
-           message = message)
-
-
+# #=====update log file==========================================================
+# 
+# #write update message
+# message="
+# Added checksum procedure for NHC occupation data.
+# "
+# 
+# #update log
+# update_log(file="log_occupation_download.txt",
+#            author="Peter T. Tanksley",
+#            message = message)
+# 
+# 

@@ -5,7 +5,11 @@ if(!file.exists("hh_adult_codebook.pdf")){
   system("curl https://wwwn.cdc.gov/nchs/data/nhanes3/1a/ADULT-acc.pdf > hh_adult_codebook.pdf")
 }
 
-if(!file.exists("hh_adult_raw.rds")){
+#check checksums
+checksum_result <- check_md5_file("hh_adult_raw.rds")
+
+
+if(!file.exists("hh_adult_raw.rds") || !checksum_result){
   
   #=====Download Data============================================================
   
@@ -60,32 +64,22 @@ if(!file.exists("hh_adult_raw.rds")){
   hh_adult_data_labs <- hh_adult_data |> 
     set_label(label = var_labels$description)
   
-  #=====Export===================================================================
-  
-  export(hh_adult_data_labs, "hh_adult_raw.rds")
+#export
+    export(hh_adult_data_labs, "hh_adult_raw.rds")
+    
+    #create checksum file
+    create_md5_file("hh_adult_raw.rds")
 }
 
-#=====update log file==========================================================
-
-#write update message
-message="
-Download raw NHANES3 data.
-"
-
-#update log
-update_log(file="log_hh_adult_download.txt",
-           author="Peter T. Tanksley",
-           message = message)
-
-
-
-
-
-
-
-
-
-
-
-
-
+# #=====update log file==========================================================
+# 
+# #write update message
+# message="
+# Added checksum procedure.
+# "
+# 
+# #update log
+# update_log(file="log_hh_adult_download.txt",
+#            author="Peter T. Tanksley",
+#            message = message)
+# 

@@ -5,7 +5,10 @@ if(!file.exists("lab_codebook.pdf")){
   system("curl https://wwwn.cdc.gov/nchs/data/nhanes3/1a/lab-acc.pdf > lab_codebook.pdf")
 }
 
-if(!file.exists("laboratory_raw.rds")){
+#check checksums
+checksum_result <- check_md5_file("laboratory_raw.rds")
+
+if(!file.exists("laboratory_raw.rds") || !checksum_result){
   
   #=====Download Data============================================================
   
@@ -67,19 +70,21 @@ if(!file.exists("laboratory_raw.rds")){
   lab_data_labs <- lab_data |> 
     set_label(label = var_labels$description)
   
-  #=====Export===================================================================
-  
+  #export
   export(lab_data_labs, "laboratory_raw.rds")
+  
+  #create checksum file
+  create_md5_file("laboratory_raw.rds")
 }
 
-#=====update log file==========================================================
-
-#write update message
-message="
-Downloaded raw NHANES3 data.
-"
-
-#update log
-update_log(file="log_laboratory_download.txt",
-           author="Peter T. Tanksley",
-           message = message)
+# #=====update log file==========================================================
+# 
+# #write update message
+# message="
+# Added checksum procedure.
+# "
+# 
+# #update log
+# update_log(file="log_laboratory_download.txt",
+#            author="Peter T. Tanksley",
+#            message = message)

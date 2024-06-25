@@ -151,18 +151,18 @@ if(!file.exists("exam_raw.rds") || !checksum_result) {
 
 
 
-#=====update log file==========================================================
-
-#write update message
-message="
-Added conditional based on the matching of MD5 checksums.
-"
-
-#update log
-update_log(file="log_exam_download.txt",
-           author="Peter T. Tanksley",
-           message = message)
-
+# #=====update log file==========================================================
+# 
+# #write update message
+# message="
+# Added conditional based on the matching of MD5 checksums.
+# "
+# 
+# #update log
+# update_log(file="log_exam_download.txt",
+#            author="Peter T. Tanksley",
+#            message = message)
+# 
 
 
 

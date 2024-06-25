@@ -79,14 +79,14 @@ if(!file.exists("mortality_clean.rds") || !checksum_result){
   
 }
 
-#=====update log file==========================================================
-
-#write update message
-message='
-Added checksum procedure for combined mortality data.
-'
-
-#update log
-update_log(file='log_mortality.txt',
-           author='Peter T. Tanksley',
-           message = message)
+# #=====update log file==========================================================
+# 
+# #write update message
+# message='
+# Added checksum procedure for combined mortality data.
+# '
+# 
+# #update log
+# update_log(file='log_mortality.txt',
+#            author='Peter T. Tanksley',
+#            message = message)

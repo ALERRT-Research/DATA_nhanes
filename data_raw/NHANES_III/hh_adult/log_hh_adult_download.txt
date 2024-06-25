@@ -1,3 +1,10 @@
+06-25-2024
+Peter T. Tanksley
+
+Message:
+Added checksum procedure.
+
+
 06-18-2024
 Peter T. Tanksley
 

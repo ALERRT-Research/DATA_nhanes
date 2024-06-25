@@ -393,15 +393,15 @@ if(!file.exists("laboratory_raw.rds") || !checksum_result) {
   create_md5_file("laboratory_raw.rds")
 }
 
-#=====update log file==========================================================
-
-#write update message
-message="
-Added checksum procedure to NHC laboratory data
-"
-
-#update log
-update_log(file="log_laboratory_download.txt",
-           author="Peter T. Tanklsey",
-           message = message)
-
+# #=====update log file==========================================================
+# 
+# #write update message
+# message="
+# Added checksum procedure to NHC laboratory data
+# "
+# 
+# #update log
+# update_log(file="log_laboratory_download.txt",
+#            author="Peter T. Tanklsey",
+#            message = message)
+# 
