@@ -47,6 +47,55 @@ pull_nhanes <- function(dataframes, years, mismatch_regex = NULL) {
   return(data_labelled)
 }
 
+# #====test====
+# 
+# pull_nhanes <- function(dataframes, years) {
+#   converted_vars <- character(0)  # Initialize vector to store converted variable names
+#   
+#   # Retrieve data
+#   data_list <- purrr::map2(dataframes, years, ~{
+#     df <- nhanesA::nhanes(.x, includelabels = TRUE) %>%
+#       dplyr::mutate(year = .y)
+#     
+#     # Detect mismatches and convert to character
+#     mismatch_cols <- which(sapply(df, is.numeric) != sapply(df, is.numeric))
+#     if (length(mismatch_cols) > 0) {
+#       converted <- names(df)[mismatch_cols]
+#       df <- df %>% dplyr::mutate(across(all_of(converted), as.character))
+#       converted_vars <<- c(converted_vars, converted)  # Append converted variables to list
+#     }
+#     
+#     return(df)
+#   })
+#   
+#   # Bind dataframes
+#   data_combined <- dplyr::bind_rows(data_list)
+#   
+#   # Define function to get labels
+#   get_labs <- function(df) {
+#     tibble::enframe(nhanes::get_label(df))
+#   }
+#   
+#   # Extract and bind unique labels
+#   labs_list <- purrr::map(data_list, get_labs) %>%
+#     dplyr::bind_rows() %>%
+#     dplyr::distinct(name, .keep_all=TRUE) 
+#   
+#   # Add labels to dataframe
+#   data_labelled <- data_combined %>%
+#     labelled::set_label(label = labs_list$value) %>% 
+#     dplyr::select(SEQN, year, everything())
+#   
+#   # If any variables were converted, issue a warning
+#   if (length(converted_vars) > 0) {
+#     warning(paste("The following variables were converted to character type:", 
+#                   paste(converted_vars, collapse = ", ")))
+#   }
+#   
+#   return(data_labelled)
+# }
+
+
 #=====define function to initialize/update logs
 
 #function for creating/updating a log file for each directory ()
